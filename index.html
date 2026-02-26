@@ -100,7 +100,8 @@
           const res = await fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
 
-          const data = await res.json();
+          const payload = await res.json();
+          const data = payload.market ?? payload; // handle both shapes
 
           // Data shape per Get Market docs: includes title, yes_bid/yes_ask, no_bid/no_ask, volume, etc.
           titleEl.textContent = data.title || ticker;
