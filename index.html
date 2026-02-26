@@ -19,11 +19,22 @@
       .label { font-size: 12px; color: #666; margin-bottom: 4px; }
       .value { font-size: 20px; font-weight: 650; }
       .muted { color: #666; font-size: 13px; margin-top: 10px; }
-      .err { color: #b00020; font-size: 13px; margin-top: 10px; }
+      .err { color: #b00020; font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
       code { background: #f1f1f1; padding: 2px 6px; border-radius: 6px; }
       input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; }
       button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
       button:hover { background: #fafafa; }
+      .debug {
+        margin-top: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        background: #f6f6f7;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 10px;
+        overflow: auto;
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -65,14 +76,15 @@
 
       <div class="muted" id="meta"></div>
       <div class="err" id="error"></div>
+      <div class="debug" id="debugBox"></div>
+
       <div class="muted" style="margin-top:12px;">
-        Tip: you can also use <code>?ticker=...</code> in the URL.
+        Tip: you can also use <code>?ticker=...</code> in the URL. Add <code>&debug=1</code> to show raw JSON.
       </div>
     </div>
 
     <script>
-      // NOTE: Kalshi uses different base hosts for different environments/products.
-      // This one matches the docs examples shown for /trade-api/v2. Adjust if needed.
+      // Your Cloudflare Worker proxy (CORS-safe)
       const BASE = "https://kalshi-proxy.gmarthandan.workers.dev/api";
 
       const el = (id) => document.getElementById(id);
@@ -81,29 +93,62 @@
       const gridEl = el("grid");
       const metaEl = el("meta");
       const errEl = el("error");
+      const debugBox = el("debugBox");
+
+      const params = new URLSearchParams(location.search);
+      const DEBUG = params.get("debug") === "1";
+
+      function setDebug(obj) {
+        if (!DEBUG) return;
+        debugBox.style.display = "block";
+        debugBox.textContent = JSON.stringify(obj, null, 2);
+      }
 
       function fmtCentsOrNull(x) {
         if (x === null || x === undefined) return "—";
-        // Kalshi often returns prices in cents for bid/ask fields (integers) and/or *_dollars strings.
         if (typeof x === "number") return `${x}¢`;
         return String(x);
       }
 
       async function loadTicker(ticker) {
         errEl.textContent = "";
+        debugBox.style.display = "none";
+        debugBox.textContent = "";
         gridEl.style.display = "none";
         metaEl.textContent = "";
         statusEl.textContent = "Loading…";
 
         try {
           const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+          const res = await fetch(url, { headers: { "Accept": "application/json" } });
+
+          if (!res.ok) {
+            // Try to read JSON error if present
+            let extra = "";
+            try {
+              const j = await res.json();
+              extra = j?.error?.message ? ` — ${j.error.message}` : "";
+              setDebug(j);
+            } catch (_) {}
+            throw new Error(`HTTP ${res.status}${extra}`);
+          }
 
           const payload = await res.json();
-          const data = payload.market ?? payload; // handle both shapes
+          setDebug(payload);
 
-          // Data shape per Get Market docs: includes title, yes_bid/yes_ask, no_bid/no_ask, volume, etc.
+          // Kalshi often returns { market: {...} }
+          const data = payload.market ?? payload;
+
+          // If the proxy ever returns { error: {...} }, fail loudly
+          if (payload && payload.error) {
+            throw new Error(payload.error.message || "Kalshi returned an error");
+          }
+
+          // Validate the shape so we never show "Loaded" with blanks
+          if (!data || typeof data !== "object" || (!("title" in data) && !("ticker" in data))) {
+            throw new Error("Unexpected response shape from proxy");
+          }
+
           titleEl.textContent = data.title || ticker;
 
           const yesBid = data.yes_bid ?? null;
@@ -123,18 +168,18 @@
           statusEl.textContent = "Loaded";
         } catch (e) {
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that ticker. ${e.message}`;
+          errEl.textContent = `Couldn’t load that ticker.\n${e.message}\n\nTry:\n- Hard refresh (Ctrl+Shift+R)\n- Add &debug=1 to the URL to see raw JSON`;
         }
       }
 
-      // Wire up input + URL param
-      const params = new URLSearchParams(location.search);
+      // Auto-load from URL param
       const urlTicker = params.get("ticker");
       if (urlTicker) {
         el("tickerInput").value = urlTicker;
         loadTicker(urlTicker);
       }
 
+      // Manual load button
       el("loadBtn").addEventListener("click", () => {
         const t = el("tickerInput").value.trim();
         if (!t) return;
