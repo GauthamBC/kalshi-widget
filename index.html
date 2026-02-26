@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kalshi Market Widget</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      body { margin: 0; padding: 16px; background: #f7f7f8; }
+      .card {
+        max-width: 720px; margin: 0 auto; background: white; border-radius: 14px;
+        padding: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .pill { padding: 6px 10px; border-radius: 999px; background: #efefef; font-size: 12px; }
+      h1 { font-size: 18px; margin: 0 0 10px; line-height: 1.3; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+      .box { border: 1px solid #eee; border-radius: 12px; padding: 12px; }
+      .label { font-size: 12px; color: #666; margin-bottom: 4px; }
+      .value { font-size: 20px; font-weight: 650; }
+      .muted { color: #666; font-size: 13px; margin-top: 10px; }
+      .err { color: #b00020; font-size: 13px; margin-top: 10px; }
+      code { background: #f1f1f1; padding: 2px 6px; border-radius: 6px; }
+      input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; }
+      button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+      button:hover { background: #fafafa; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <div class="pill">Kalshi Market Widget (basic)</div>
+        <div class="pill" id="status">Idle</div>
+      </div>
+
+      <h1 id="title">Enter a market ticker</h1>
+
+      <div class="row" style="margin-top:10px;">
+        <div style="flex:1; min-width: 220px;">
+          <input id="tickerInput" placeholder="e.g. SOME-MARKET-TICKER" />
+        </div>
+        <div>
+          <button id="loadBtn">Load</button>
+        </div>
+      </div>
+
+      <div class="grid" id="grid" style="display:none;">
+        <div class="box">
+          <div class="label">YES bid / ask</div>
+          <div class="value" id="yesBidAsk">—</div>
+        </div>
+        <div class="box">
+          <div class="label">NO bid / ask</div>
+          <div class="value" id="noBidAsk">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Last price</div>
+          <div class="value" id="lastPrice">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Volume</div>
+          <div class="value" id="volume">—</div>
+        </div>
+      </div>
+
+      <div class="muted" id="meta"></div>
+      <div class="err" id="error"></div>
+      <div class="muted" style="margin-top:12px;">
+        Tip: you can also use <code>?ticker=...</code> in the URL.
+      </div>
+    </div>
+
+    <script>
+      // NOTE: Kalshi uses different base hosts for different environments/products.
+      // This one matches the docs examples shown for /trade-api/v2. Adjust if needed.
+      const BASE = "https://api.elections.kalshi.com/trade-api/v2";
+
+      const el = (id) => document.getElementById(id);
+      const statusEl = el("status");
+      const titleEl = el("title");
+      const gridEl = el("grid");
+      const metaEl = el("meta");
+      const errEl = el("error");
+
+      function fmtCentsOrNull(x) {
+        if (x === null || x === undefined) return "—";
+        // Kalshi often returns prices in cents for bid/ask fields (integers) and/or *_dollars strings.
+        if (typeof x === "number") return `${x}¢`;
+        return String(x);
+      }
+
+      async function loadTicker(ticker) {
+        errEl.textContent = "";
+        gridEl.style.display = "none";
+        metaEl.textContent = "";
+        statusEl.textContent = "Loading…";
+
+        try {
+          const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+
+          const data = await res.json();
+
+          // Data shape per Get Market docs: includes title, yes_bid/yes_ask, no_bid/no_ask, volume, etc.
+          titleEl.textContent = data.title || ticker;
+
+          const yesBid = data.yes_bid ?? null;
+          const yesAsk = data.yes_ask ?? null;
+          const noBid  = data.no_bid  ?? null;
+          const noAsk  = data.no_ask  ?? null;
+
+          el("yesBidAsk").textContent = `${fmtCentsOrNull(yesBid)} / ${fmtCentsOrNull(yesAsk)}`;
+          el("noBidAsk").textContent  = `${fmtCentsOrNull(noBid)} / ${fmtCentsOrNull(noAsk)}`;
+
+          el("lastPrice").textContent = fmtCentsOrNull(data.last_price ?? null);
+          el("volume").textContent = (data.volume ?? "—").toString();
+
+          metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
+
+          gridEl.style.display = "grid";
+          statusEl.textContent = "Loaded";
+        } catch (e) {
+          statusEl.textContent = "Error";
+          errEl.textContent = `Couldn’t load that ticker. ${e.message}`;
+        }
+      }
+
+      // Wire up input + URL param
+      const params = new URLSearchParams(location.search);
+      const urlTicker = params.get("ticker");
+      if (urlTicker) {
+        el("tickerInput").value = urlTicker;
+        loadTicker(urlTicker);
+      }
+
+      el("loadBtn").addEventListener("click", () => {
+        const t = el("tickerInput").value.trim();
+        if (!t) return;
+        const newUrl = new URL(location.href);
+        newUrl.searchParams.set("ticker", t);
+        history.replaceState({}, "", newUrl);
+        loadTicker(t);
+      });
+    </script>
+  </body>
+</html>
