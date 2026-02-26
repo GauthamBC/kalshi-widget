@@ -4,11 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Kalshi Market Widget</title>
+
+    <!-- Chart.js (simple, CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
       :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
       body { margin: 0; padding: 16px; background: #f7f7f8; }
       .card {
-        max-width: 840px; margin: 0 auto; background: white; border-radius: 14px;
+        max-width: 920px; margin: 0 auto; background: white; border-radius: 14px;
         padding: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08);
       }
       .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
@@ -24,6 +28,8 @@
       input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; }
       button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
       button:hover { background: #fafafa; }
+      .btnGroup { display:flex; gap:8px; flex-wrap: wrap; }
+      .btnSmall { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
 
       .debug {
         margin-top: 12px;
@@ -52,12 +58,25 @@
       .clickable { cursor: pointer; }
       .clickable:hover { background: #fafafa; }
       .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
+
+      /* Chart section */
+      .chartWrap { margin-top: 14px; display: none; }
+      .chartHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap: wrap; }
+      .chartTitle { font-weight: 650; }
+      .chartBox {
+        margin-top: 8px;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 10px;
+        background: #fff;
+      }
+      canvas { width: 100% !important; height: 320px !important; }
     </style>
   </head>
   <body>
     <div class="card">
       <div class="row" style="justify-content:space-between;">
-        <div class="pill">Kalshi Widget (market + event)</div>
+        <div class="pill">Kalshi Widget (market + event + chart)</div>
         <div class="pill" id="status">Idle</div>
       </div>
 
@@ -93,6 +112,23 @@
       </div>
 
       <div class="muted" id="meta"></div>
+
+      <!-- Chart -->
+      <div class="chartWrap" id="chartWrap">
+        <div class="chartHeader">
+          <div class="chartTitle" id="chartTitle">Chance</div>
+          <div class="btnGroup">
+            <button class="btnSmall" data-range="1d">1D</button>
+            <button class="btnSmall" data-range="1w">1W</button>
+            <button class="btnSmall" data-range="1m">1M</button>
+            <button class="btnSmall" data-range="all">ALL</button>
+          </div>
+        </div>
+        <div class="chartBox">
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div class="muted" id="chartMeta"></div>
+      </div>
 
       <!-- Event markets list -->
       <div class="listWrap" id="listWrap">
@@ -154,10 +190,18 @@
       const marketsTbody = el("marketsTbody");
       const sortSelect = el("sortSelect");
 
+      const chartWrap = el("chartWrap");
+      const chartTitle = el("chartTitle");
+      const chartMeta = el("chartMeta");
+
       const params = new URLSearchParams(location.search);
       const DEBUG = params.get("debug") === "1";
 
-      let lastEventMarkets = []; // cached for sorting
+      let lastEventMarkets = [];
+      let activeRange = "1d";
+      let activeEventTicker = null;
+      let activeMarketTickersForChart = null; // array of tickers to plot
+      let chart = null;
 
       function setDebug(obj) {
         if (!DEBUG) return;
@@ -174,6 +218,12 @@
         listWrap.style.display = "none";
         marketsTbody.innerHTML = "";
         lastEventMarkets = [];
+
+        chartWrap.style.display = "none";
+        chartMeta.textContent = "";
+        activeEventTicker = null;
+        activeMarketTickersForChart = null;
+        if (chart) { chart.destroy(); chart = null; }
       }
 
       function fmtCentsOrNull(x) {
@@ -214,7 +264,6 @@
           const tr = document.createElement("tr");
           tr.className = "clickable";
           tr.addEventListener("click", () => {
-            // update URL to ticker
             const newUrl = new URL(location.href);
             newUrl.searchParams.delete("event");
             newUrl.searchParams.set("ticker", mk.ticker);
@@ -241,7 +290,6 @@
       async function fetchJSON(url) {
         const res = await fetch(url, { headers: { "Accept": "application/json" } });
         if (!res.ok) {
-          // Try to read JSON error if present
           let extra = "";
           try {
             const j = await res.json();
@@ -251,6 +299,92 @@
           throw new Error(`HTTP ${res.status}${extra}`);
         }
         return res.json();
+      }
+
+      function rangeToWindow(range) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };   // 1h sticks
+        if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 }; // 1h sticks
+        if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 }; // 1d sticks
+        // ALL: last 90 days daily (keeps payload reasonable)
+        return { start: nowSec - 90*86400, end: nowSec, interval: 1440 };
+      }
+
+      function buildSeriesLabelFromTicker(ticker) {
+        // last token after final "-" is usually side (LAL/PHX) for game markets
+        const parts = (ticker || "").split("-");
+        return parts[parts.length - 1] || ticker;
+      }
+
+      function toChartPoints(candles) {
+        // We use price.close (cents) as "chance" percent (roughly Kalshi UI)
+        // Candlestick shape from docs includes `price.close` etc. :contentReference[oaicite:3]{index=3}
+        const pts = [];
+        for (const c of (candles || [])) {
+          const ts = c.end_period_ts;
+          const close = c?.price?.close;
+          if (typeof ts === "number" && typeof close === "number") {
+            pts.push({ x: ts * 1000, y: close });
+          }
+        }
+        return pts;
+      }
+
+      async function loadChartForMarketTickers(tickers) {
+        if (!Array.isArray(tickers) || tickers.length === 0) return;
+
+        const { start, end, interval } = rangeToWindow(activeRange);
+
+        // Batch candlesticks endpoint: /markets/candlesticks :contentReference[oaicite:4]{index=4}
+        const url =
+          `${BASE}/markets/candlesticks` +
+          `?market_tickers=${encodeURIComponent(tickers.join(","))}` +
+          `&start_ts=${start}&end_ts=${end}&period_interval=${interval}` +
+          `&include_latest_before_start=true`;
+
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const markets = payload.markets || [];
+        if (!Array.isArray(markets) || markets.length === 0) {
+          throw new Error("No candlestick data returned for chart range.");
+        }
+
+        const datasets = markets.map((m) => {
+          const label = buildSeriesLabelFromTicker(m.market_ticker);
+          const data = toChartPoints(m.candlesticks);
+          return { label, data, tension: 0.25, pointRadius: 0 };
+        });
+
+        chartWrap.style.display = "block";
+        chartTitle.textContent = "Chance";
+        chartMeta.textContent = `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${tickers.join(" , ")}`;
+
+        const ctx = document.getElementById("priceChart").getContext("2d");
+        if (chart) { chart.destroy(); chart = null; }
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            parsing: false,
+            scales: {
+              x: { type: "time", time: { tooltipFormat: "MMM d, HH:mm" } },
+              y: {
+                suggestedMin: 0,
+                suggestedMax: 100,
+                ticks: { callback: (v) => `${v}%` }
+              }
+            },
+            plugins: {
+              legend: { display: true },
+              tooltip: { mode: "index", intersect: false }
+            },
+            interaction: { mode: "index", intersect: false }
+          }
+        });
       }
 
       async function loadMarket(ticker) {
@@ -270,14 +404,8 @@
 
           titleEl.textContent = data.title || ticker;
 
-          const yesBid = n(data.yes_bid);
-          const yesAsk = n(data.yes_ask);
-          const noBid  = n(data.no_bid);
-          const noAsk  = n(data.no_ask);
-
-          el("yesBidAsk").textContent = `${fmtCentsOrNull(yesBid)} / ${fmtCentsOrNull(yesAsk)}`;
-          el("noBidAsk").textContent  = `${fmtCentsOrNull(noBid)} / ${fmtCentsOrNull(noAsk)}`;
-
+          el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
+          el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
           el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
           el("volume").textContent = (data.volume ?? "—").toString();
 
@@ -285,6 +413,11 @@
 
           gridEl.style.display = "grid";
           statusEl.textContent = "Loaded";
+
+          // Chart for single market (one line)
+          activeMarketTickersForChart = [data.ticker || ticker];
+          await loadChartForMarketTickers(activeMarketTickersForChart);
+
         } catch (e) {
           statusEl.textContent = "Error";
           errEl.textContent = `Couldn’t load that market.\n${e.message}`;
@@ -297,72 +430,82 @@
         titleEl.textContent = "Loading event…";
 
         try {
-          // Kalshi list endpoint supports filtering by event_ticker
+          // List markets for event: /markets?event_ticker=... (works with your proxy)
           const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
           const payload = await fetchJSON(url);
           setDebug(payload);
 
-          // Response shape: { markets: [...], cursor: "..." }
           const markets = payload.markets ?? [];
           if (!Array.isArray(markets) || markets.length === 0) {
             throw new Error("No markets found for that event ticker (or event ticker is wrong).");
           }
 
-          // Update title to something nicer if possible
           titleEl.textContent = `Event: ${eventTicker}`;
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
           lastEventMarkets = markets;
+          activeEventTicker = eventTicker;
           renderMarketsList(eventTicker, markets);
+
+          // If this is a typical game event with exactly 2 markets, chart them both (Kalshi-like)
+          // Otherwise chart the top 2 by volume (sensible default).
+          const topByVol = [...markets].sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
+          const tickersToChart = (markets.length >= 2 ? topByVol.slice(0, 2) : topByVol.slice(0, 1))
+            .map(m => m.ticker)
+            .filter(Boolean);
+
+          activeMarketTickersForChart = tickersToChart;
+          await loadChartForMarketTickers(activeMarketTickersForChart);
 
           statusEl.textContent = "Loaded";
         } catch (e) {
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXNBAGAME-25DEC01PHXLAL (all caps).`;
+          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXNBAGAME-26FEB26LALPHX (all caps).`;
         }
       }
 
       function isProbablyEventTicker(s) {
-        // Heuristic: event tickers usually contain one hyphen after the series, e.g. KXNBAGAME-25DEC01PHXLAL
-        // market tickers usually contain >= 2 hyphens, e.g. ...-LAL or ...-PLAYER-1
         const hyphens = (s.match(/-/g) || []).length;
-        return hyphens === 1;
-      }
-
-      function normalizeTickerInput(s) {
-        return (s || "").trim();
+        return hyphens === 1; // e.g., KXNBAGAME-26FEB26LALPHX
       }
 
       async function loadFromInput(raw) {
-        const value = normalizeTickerInput(raw);
+        const value = (raw || "").trim();
         if (!value) return;
 
-        // Update URL for shareability
         const newUrl = new URL(location.href);
 
-        // If the user pasted a full Kalshi URL, try to extract a ticker-like bit (best-effort)
-        // Otherwise treat as direct ticker/event.
-        let candidate = value;
-
-        // Decide event vs market
-        if (isProbablyEventTicker(candidate)) {
+        if (isProbablyEventTicker(value)) {
           newUrl.searchParams.delete("ticker");
-          newUrl.searchParams.set("event", candidate);
+          newUrl.searchParams.set("event", value);
           history.replaceState({}, "", newUrl);
-          await loadEvent(candidate);
+          await loadEvent(value);
         } else {
           newUrl.searchParams.delete("event");
-          newUrl.searchParams.set("ticker", candidate);
+          newUrl.searchParams.set("ticker", value);
           history.replaceState({}, "", newUrl);
-          await loadMarket(candidate);
+          await loadMarket(value);
         }
       }
 
-      // Sorting dropdown
+      // Sort change rerenders table
       sortSelect.addEventListener("change", () => {
         const ev = params.get("event");
         if (!ev || !lastEventMarkets.length) return;
         renderMarketsList(ev, lastEventMarkets);
+      });
+
+      // Range buttons
+      document.querySelectorAll("[data-range]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          activeRange = btn.getAttribute("data-range");
+          if (!activeMarketTickersForChart) return;
+          try {
+            await loadChartForMarketTickers(activeMarketTickersForChart);
+          } catch (e) {
+            errEl.textContent = `Chart error:\n${e.message}`;
+          }
+        });
       });
 
       // Auto-load from URL params
@@ -376,17 +519,10 @@
         loadMarket(urlTicker);
       }
 
-      // Manual load button
-      el("loadBtn").addEventListener("click", () => {
-        loadFromInput(el("inputBox").value);
-      });
-
-      // Enter key to load
+      // Manual load
+      el("loadBtn").addEventListener("click", () => loadFromInput(el("inputBox").value));
       el("inputBox").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          loadFromInput(el("inputBox").value);
-        }
+        if (e.key === "Enter") { e.preventDefault(); loadFromInput(el("inputBox").value); }
       });
     </script>
   </body>
