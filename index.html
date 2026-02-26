@@ -8,10 +8,10 @@
       :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
       body { margin: 0; padding: 16px; background: #f7f7f8; }
       .card {
-        max-width: 720px; margin: 0 auto; background: white; border-radius: 14px;
+        max-width: 840px; margin: 0 auto; background: white; border-radius: 14px;
         padding: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08);
       }
-      .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
       .pill { padding: 6px 10px; border-radius: 999px; background: #efefef; font-size: 12px; }
       h1 { font-size: 18px; margin: 0 0 10px; line-height: 1.3; }
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
@@ -24,6 +24,7 @@
       input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; }
       button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
       button:hover { background: #fafafa; }
+
       .debug {
         margin-top: 12px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -35,26 +36,43 @@
         overflow: auto;
         display: none;
       }
+
+      .listWrap { margin-top: 12px; display: none; }
+      .listHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; flex-wrap: wrap; }
+      .listTitle { font-weight: 650; }
+      .smallSelect {
+        padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; background: #fff;
+      }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 10px 10px; border-top: 1px solid #eee; vertical-align: top; }
+      th { font-size: 12px; color: #666; font-weight: 650; }
+      td { font-size: 13px; }
+      .tickerCell { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; color:#333; }
+      .clickable { cursor: pointer; }
+      .clickable:hover { background: #fafafa; }
+      .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
     </style>
   </head>
   <body>
     <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;">
-        <div class="pill">Kalshi Market Widget (basic)</div>
+      <div class="row" style="justify-content:space-between;">
+        <div class="pill">Kalshi Widget (market + event)</div>
         <div class="pill" id="status">Idle</div>
       </div>
 
-      <h1 id="title">Enter a market ticker</h1>
+      <h1 id="title">Enter a market ticker or event ticker</h1>
 
       <div class="row" style="margin-top:10px;">
-        <div style="flex:1; min-width: 220px;">
-          <input id="tickerInput" placeholder="e.g. SOME-MARKET-TICKER" />
+        <div style="flex:1; min-width: 260px;">
+          <input id="inputBox" placeholder="Market ticker (e.g. KXNBA3PT-...-1) OR Event ticker (e.g. KXNBAGAME-...)" />
         </div>
-        <div>
+        <div class="row">
           <button id="loadBtn">Load</button>
         </div>
       </div>
 
+      <!-- Single market view -->
       <div class="grid" id="grid" style="display:none;">
         <div class="box">
           <div class="label">YES bid / ask</div>
@@ -75,11 +93,46 @@
       </div>
 
       <div class="muted" id="meta"></div>
+
+      <!-- Event markets list -->
+      <div class="listWrap" id="listWrap">
+        <div class="listHeader">
+          <div class="listTitle" id="listTitle">Event markets</div>
+          <div class="row">
+            <span class="tag" id="countTag">0 markets</span>
+            <select class="smallSelect" id="sortSelect" title="Sort markets">
+              <option value="yes_desc">Sort: YES bid (high → low)</option>
+              <option value="yes_asc">Sort: YES bid (low → high)</option>
+              <option value="vol_desc">Sort: Volume (high → low)</option>
+              <option value="title_asc">Sort: Title (A → Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:42%;">Market</th>
+              <th style="width:18%;">YES (bid/ask)</th>
+              <th style="width:18%;">NO (bid/ask)</th>
+              <th style="width:10%;">Vol</th>
+              <th style="width:12%;">Ticker</th>
+            </tr>
+          </thead>
+          <tbody id="marketsTbody"></tbody>
+        </table>
+
+        <div class="muted" style="margin-top:8px;">
+          Tip: click any row to load that specific market in the widget above.
+        </div>
+      </div>
+
       <div class="err" id="error"></div>
       <div class="debug" id="debugBox"></div>
 
       <div class="muted" style="margin-top:12px;">
-        Tip: you can also use <code>?ticker=...</code> in the URL. Add <code>&debug=1</code> to show raw JSON.
+        Use <code>?ticker=...</code> for a single market or <code>?event=...</code> for an event.
+        Add <code>&debug=1</code> to show raw JSON.
       </div>
     </div>
 
@@ -95,13 +148,32 @@
       const errEl = el("error");
       const debugBox = el("debugBox");
 
+      const listWrap = el("listWrap");
+      const listTitle = el("listTitle");
+      const countTag = el("countTag");
+      const marketsTbody = el("marketsTbody");
+      const sortSelect = el("sortSelect");
+
       const params = new URLSearchParams(location.search);
       const DEBUG = params.get("debug") === "1";
+
+      let lastEventMarkets = []; // cached for sorting
 
       function setDebug(obj) {
         if (!DEBUG) return;
         debugBox.style.display = "block";
         debugBox.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function clearUI() {
+        errEl.textContent = "";
+        debugBox.style.display = "none";
+        debugBox.textContent = "";
+        gridEl.style.display = "none";
+        metaEl.textContent = "";
+        listWrap.style.display = "none";
+        marketsTbody.innerHTML = "";
+        lastEventMarkets = [];
       }
 
       function fmtCentsOrNull(x) {
@@ -110,56 +182,103 @@
         return String(x);
       }
 
-      async function loadTicker(ticker) {
-        errEl.textContent = "";
-        debugBox.style.display = "none";
-        debugBox.textContent = "";
-        gridEl.style.display = "none";
-        metaEl.textContent = "";
-        statusEl.textContent = "Loading…";
+      function n(x) {
+        return (typeof x === "number" && !Number.isNaN(x)) ? x : null;
+      }
+
+      function sortMarkets(markets, mode) {
+        const m = [...markets];
+        const yesBid = (o) => (typeof o.yes_bid === "number" ? o.yes_bid : -Infinity);
+        const vol = (o) => (typeof o.volume === "number" ? o.volume : -Infinity);
+        const title = (o) => (o.title || "").toLowerCase();
+
+        switch (mode) {
+          case "yes_asc":  m.sort((a,b) => yesBid(a) - yesBid(b)); break;
+          case "vol_desc": m.sort((a,b) => vol(b) - vol(a)); break;
+          case "title_asc": m.sort((a,b) => title(a).localeCompare(title(b))); break;
+          case "yes_desc":
+          default: m.sort((a,b) => yesBid(b) - yesBid(a)); break;
+        }
+        return m;
+      }
+
+      function renderMarketsList(eventTicker, markets) {
+        listWrap.style.display = "block";
+        listTitle.textContent = `Event markets: ${eventTicker}`;
+        countTag.textContent = `${markets.length} markets`;
+
+        const sorted = sortMarkets(markets, sortSelect.value);
+        marketsTbody.innerHTML = "";
+
+        for (const mk of sorted) {
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.addEventListener("click", () => {
+            // update URL to ticker
+            const newUrl = new URL(location.href);
+            newUrl.searchParams.delete("event");
+            newUrl.searchParams.set("ticker", mk.ticker);
+            history.replaceState({}, "", newUrl);
+
+            el("inputBox").value = mk.ticker;
+            loadMarket(mk.ticker);
+          });
+
+          const yes = `${fmtCentsOrNull(mk.yes_bid)} / ${fmtCentsOrNull(mk.yes_ask)}`;
+          const no  = `${fmtCentsOrNull(mk.no_bid)} / ${fmtCentsOrNull(mk.no_ask)}`;
+
+          tr.innerHTML = `
+            <td>${mk.title || "—"}</td>
+            <td>${yes}</td>
+            <td>${no}</td>
+            <td>${mk.volume ?? "—"}</td>
+            <td class="tickerCell">${mk.ticker || "—"}</td>
+          `;
+          marketsTbody.appendChild(tr);
+        }
+      }
+
+      async function fetchJSON(url) {
+        const res = await fetch(url, { headers: { "Accept": "application/json" } });
+        if (!res.ok) {
+          // Try to read JSON error if present
+          let extra = "";
+          try {
+            const j = await res.json();
+            extra = j?.error?.message ? ` — ${j.error.message}` : "";
+            setDebug(j);
+          } catch (_) {}
+          throw new Error(`HTTP ${res.status}${extra}`);
+        }
+        return res.json();
+      }
+
+      async function loadMarket(ticker) {
+        clearUI();
+        statusEl.textContent = "Loading market…";
 
         try {
           const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
-          const res = await fetch(url, { headers: { "Accept": "application/json" } });
-
-          if (!res.ok) {
-            // Try to read JSON error if present
-            let extra = "";
-            try {
-              const j = await res.json();
-              extra = j?.error?.message ? ` — ${j.error.message}` : "";
-              setDebug(j);
-            } catch (_) {}
-            throw new Error(`HTTP ${res.status}${extra}`);
-          }
-
-          const payload = await res.json();
+          const payload = await fetchJSON(url);
           setDebug(payload);
 
-          // Kalshi often returns { market: {...} }
           const data = payload.market ?? payload;
-
-          // If the proxy ever returns { error: {...} }, fail loudly
-          if (payload && payload.error) {
-            throw new Error(payload.error.message || "Kalshi returned an error");
-          }
-
-          // Validate the shape so we never show "Loaded" with blanks
+          if (payload && payload.error) throw new Error(payload.error.message || "Kalshi returned an error");
           if (!data || typeof data !== "object" || (!("title" in data) && !("ticker" in data))) {
             throw new Error("Unexpected response shape from proxy");
           }
 
           titleEl.textContent = data.title || ticker;
 
-          const yesBid = data.yes_bid ?? null;
-          const yesAsk = data.yes_ask ?? null;
-          const noBid  = data.no_bid  ?? null;
-          const noAsk  = data.no_ask  ?? null;
+          const yesBid = n(data.yes_bid);
+          const yesAsk = n(data.yes_ask);
+          const noBid  = n(data.no_bid);
+          const noAsk  = n(data.no_ask);
 
           el("yesBidAsk").textContent = `${fmtCentsOrNull(yesBid)} / ${fmtCentsOrNull(yesAsk)}`;
           el("noBidAsk").textContent  = `${fmtCentsOrNull(noBid)} / ${fmtCentsOrNull(noAsk)}`;
 
-          el("lastPrice").textContent = fmtCentsOrNull(data.last_price ?? null);
+          el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
           el("volume").textContent = (data.volume ?? "—").toString();
 
           metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
@@ -168,25 +287,106 @@
           statusEl.textContent = "Loaded";
         } catch (e) {
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that ticker.\n${e.message}\n\nTry:\n- Hard refresh (Ctrl+Shift+R)\n- Add &debug=1 to the URL to see raw JSON`;
+          errEl.textContent = `Couldn’t load that market.\n${e.message}`;
         }
       }
 
-      // Auto-load from URL param
+      async function loadEvent(eventTicker) {
+        clearUI();
+        statusEl.textContent = "Loading event markets…";
+        titleEl.textContent = "Loading event…";
+
+        try {
+          // Kalshi list endpoint supports filtering by event_ticker
+          const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
+          const payload = await fetchJSON(url);
+          setDebug(payload);
+
+          // Response shape: { markets: [...], cursor: "..." }
+          const markets = payload.markets ?? [];
+          if (!Array.isArray(markets) || markets.length === 0) {
+            throw new Error("No markets found for that event ticker (or event ticker is wrong).");
+          }
+
+          // Update title to something nicer if possible
+          titleEl.textContent = `Event: ${eventTicker}`;
+          metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+
+          lastEventMarkets = markets;
+          renderMarketsList(eventTicker, markets);
+
+          statusEl.textContent = "Loaded";
+        } catch (e) {
+          statusEl.textContent = "Error";
+          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXNBAGAME-25DEC01PHXLAL (all caps).`;
+        }
+      }
+
+      function isProbablyEventTicker(s) {
+        // Heuristic: event tickers usually contain one hyphen after the series, e.g. KXNBAGAME-25DEC01PHXLAL
+        // market tickers usually contain >= 2 hyphens, e.g. ...-LAL or ...-PLAYER-1
+        const hyphens = (s.match(/-/g) || []).length;
+        return hyphens === 1;
+      }
+
+      function normalizeTickerInput(s) {
+        return (s || "").trim();
+      }
+
+      async function loadFromInput(raw) {
+        const value = normalizeTickerInput(raw);
+        if (!value) return;
+
+        // Update URL for shareability
+        const newUrl = new URL(location.href);
+
+        // If the user pasted a full Kalshi URL, try to extract a ticker-like bit (best-effort)
+        // Otherwise treat as direct ticker/event.
+        let candidate = value;
+
+        // Decide event vs market
+        if (isProbablyEventTicker(candidate)) {
+          newUrl.searchParams.delete("ticker");
+          newUrl.searchParams.set("event", candidate);
+          history.replaceState({}, "", newUrl);
+          await loadEvent(candidate);
+        } else {
+          newUrl.searchParams.delete("event");
+          newUrl.searchParams.set("ticker", candidate);
+          history.replaceState({}, "", newUrl);
+          await loadMarket(candidate);
+        }
+      }
+
+      // Sorting dropdown
+      sortSelect.addEventListener("change", () => {
+        const ev = params.get("event");
+        if (!ev || !lastEventMarkets.length) return;
+        renderMarketsList(ev, lastEventMarkets);
+      });
+
+      // Auto-load from URL params
       const urlTicker = params.get("ticker");
-      if (urlTicker) {
-        el("tickerInput").value = urlTicker;
-        loadTicker(urlTicker);
+      const urlEvent = params.get("event");
+      if (urlEvent) {
+        el("inputBox").value = urlEvent;
+        loadEvent(urlEvent);
+      } else if (urlTicker) {
+        el("inputBox").value = urlTicker;
+        loadMarket(urlTicker);
       }
 
       // Manual load button
       el("loadBtn").addEventListener("click", () => {
-        const t = el("tickerInput").value.trim();
-        if (!t) return;
-        const newUrl = new URL(location.href);
-        newUrl.searchParams.set("ticker", t);
-        history.replaceState({}, "", newUrl);
-        loadTicker(t);
+        loadFromInput(el("inputBox").value);
+      });
+
+      // Enter key to load
+      el("inputBox").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          loadFromInput(el("inputBox").value);
+        }
       });
     </script>
   </body>
