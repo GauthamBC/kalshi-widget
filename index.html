@@ -201,12 +201,32 @@
       let activeRange = "1d";
       let activeEventTicker = null;
       let activeMarketTickersForChart = null; // array of tickers to plot
-      let chart = null;
+      let chart = null; // still keep a handle, but we will HARD-destroy via Chart.getChart()
 
       function setDebug(obj) {
         if (!DEBUG) return;
         debugBox.style.display = "block";
         debugBox.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function hardDestroyChart() {
+        const canvas = document.getElementById("priceChart");
+        if (!canvas || typeof Chart === "undefined" || !Chart.getChart) {
+          // Fallback to old handle if Chart.getChart isn't available
+          if (chart) { try { chart.destroy(); } catch (_) {} chart = null; }
+          return;
+        }
+        const existing = Chart.getChart(canvas);
+        if (existing) {
+          try { existing.destroy(); } catch (_) {}
+        }
+        chart = null;
+
+        // Extra safety: clear the canvas
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
 
       function clearUI() {
@@ -223,7 +243,9 @@
         chartMeta.textContent = "";
         activeEventTicker = null;
         activeMarketTickersForChart = null;
-        if (chart) { chart.destroy(); chart = null; }
+
+        // ✅ IMPORTANT: destroy any chart bound to the canvas
+        hardDestroyChart();
       }
 
       function fmtCentsOrNull(x) {
@@ -318,7 +340,6 @@
 
       function toChartPoints(candles) {
         // We use price.close (cents) as "chance" percent (roughly Kalshi UI)
-        // Candlestick shape from docs includes `price.close` etc. :contentReference[oaicite:3]{index=3}
         const pts = [];
         for (const c of (candles || [])) {
           const ts = c.end_period_ts;
@@ -333,9 +354,12 @@
       async function loadChartForMarketTickers(tickers) {
         if (!Array.isArray(tickers) || tickers.length === 0) return;
 
+        // ✅ ALWAYS destroy any previous chart BEFORE fetching/rendering
+        hardDestroyChart();
+
         const { start, end, interval } = rangeToWindow(activeRange);
 
-        // Batch candlesticks endpoint: /markets/candlesticks :contentReference[oaicite:4]{index=4}
+        // Batch candlesticks endpoint: /markets/candlesticks
         const url =
           `${BASE}/markets/candlesticks` +
           `?market_tickers=${encodeURIComponent(tickers.join(","))}` +
@@ -353,15 +377,26 @@
         const datasets = markets.map((m) => {
           const label = buildSeriesLabelFromTicker(m.market_ticker);
           const data = toChartPoints(m.candlesticks);
+
+          // Keep empty series out of the chart (prevents weird rendering)
           return { label, data, tension: 0.25, pointRadius: 0 };
-        });
+        }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
+
+        if (datasets.length === 0) {
+          throw new Error("Candlesticks returned, but no usable points for the selected range.");
+        }
 
         chartWrap.style.display = "block";
         chartTitle.textContent = "Chance";
         chartMeta.textContent = `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${tickers.join(" , ")}`;
 
-        const ctx = document.getElementById("priceChart").getContext("2d");
-        if (chart) { chart.destroy(); chart = null; }
+        // ✅ HARD destroy any chart still bound to the canvas (belt & braces)
+        const canvas = document.getElementById("priceChart");
+        const existing = Chart.getChart ? Chart.getChart(canvas) : null;
+        if (existing) existing.destroy();
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         chart = new Chart(ctx, {
           type: "line",
@@ -371,7 +406,10 @@
             maintainAspectRatio: false,
             parsing: false,
             scales: {
-              x: { type: "time", time: { tooltipFormat: "MMM d, HH:mm" } },
+              x: {
+                type: "time",
+                time: { tooltipFormat: "MMM d, HH:mm" }
+              },
               y: {
                 suggestedMin: 0,
                 suggestedMax: 100,
@@ -430,7 +468,7 @@
         titleEl.textContent = "Loading event…";
 
         try {
-          // List markets for event: /markets?event_ticker=... (works with your proxy)
+          // List markets for event: /markets?event_ticker=...
           const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
           const payload = await fetchJSON(url);
           setDebug(payload);
@@ -447,8 +485,7 @@
           activeEventTicker = eventTicker;
           renderMarketsList(eventTicker, markets);
 
-          // If this is a typical game event with exactly 2 markets, chart them both (Kalshi-like)
-          // Otherwise chart the top 2 by volume (sensible default).
+          // Chart the top 2 by volume (Kalshi-like for game events)
           const topByVol = [...markets].sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
           const tickersToChart = (markets.length >= 2 ? topByVol.slice(0, 2) : topByVol.slice(0, 1))
             .map(m => m.ticker)
