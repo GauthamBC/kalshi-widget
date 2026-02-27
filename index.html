@@ -13,241 +13,263 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
     <style>
-      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-      body { margin: 0; padding: 16px; background: #f7f7f8; }
-
-      .card{
-        max-width: 980px; margin: 0 auto; background: #fff; border-radius: 14px;
-        padding: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      :root {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
-
-      .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-      .pill { padding:6px 10px; border-radius:999px; background:#efefef; font-size:12px; }
-      h1 { font-size: 18px; margin: 0 0 10px; line-height: 1.3; }
-      input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
-      button { padding:10px 12px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
-      button:hover { background:#fafafa; }
-
-      .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
-      .box { border:1px solid #eee; border-radius:12px; padding:12px; }
-      .label { font-size:12px; color:#666; margin-bottom:4px; }
-      .value { font-size:20px; font-weight:650; }
-      .muted { color:#666; font-size:13px; margin-top:10px; }
-      .err { color:#b00020; font-size:13px; margin-top:10px; white-space:pre-wrap; }
-      code { background:#f1f1f1; padding:2px 6px; border-radius:6px; }
-
-      .debug{
-        margin-top:12px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-        font-size:12px; background:#f6f6f7; border:1px solid #eee; border-radius:12px; padding:10px;
-        overflow:auto; display:none;
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #f7f7f8;
       }
-
-      /* Event question above chart */
-      .question{
-        margin-top:14px;
-        font-size:18px;
-        font-weight:750;
-        color:#111;
-        display:none;
+      .card {
+        max-width: 920px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
       }
-
-      /* ===== Sleek chart area (dark) ===== */
-      .chartWrap { margin-top: 10px; display:none; }
-
-      .statsBar{
-        margin-top:10px;
-        display:none;
-        gap:10px;
-        flex-wrap:wrap;
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
       }
-      .statTile{
-        flex: 1 1 220px;
-        min-width: 200px;
-        background:#0f1115;
-        border:1px solid rgba(255,255,255,.10);
-        border-radius:14px;
-        padding:12px 14px;
-      }
-      .statLabel{ font-size:12px; color:rgba(255,255,255,.65); letter-spacing:.3px; }
-      .statValue{ margin-top:4px; font-size:22px; font-weight:850; color:#fff; letter-spacing:.2px; }
-
-      /* Custom legend like Image 1 */
-      .legendRow{
-        margin-top:10px;
-        display:none;
-        gap:18px;
-        flex-wrap:wrap;
-        align-items:center;
-      }
-      .legendItem{
-        display:flex;
-        align-items:center;
-        gap:10px;
-        font-size:16px;
-        font-weight:650;
-        color:#111;
-      }
-      .dot{
-        width:10px; height:10px; border-radius:999px;
-        display:inline-block;
-      }
-      .legendPct{
-        font-weight:850;
-        color:#111;
-        margin-left:6px;
-      }
-
-      .chartHeader{
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:12px;
-        flex-wrap:wrap;
-        margin-top: 8px;
-      }
-      .chartTitle{ font-weight:650; color:#fff; opacity:.9; }
-
-      .btnGroup{ display:flex; gap:8px; flex-wrap:wrap; }
-      .btnSmall{
-        padding:6px 10px; font-size:12px; border-radius:999px;
-        border:1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.06);
-        color:#fff;
-      }
-      .btnSmall:hover{ background: rgba(255,255,255,.10); }
-
-      .chartBox{
-        margin-top: 10px;
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 16px;
-        padding: 12px;
-        background: #0f1115; /* dark */
-        overflow:hidden;
-      }
-      canvas{ width:100% !important; height:360px !important; }
-
-      .chartMetaDark{
-        color: rgba(255,255,255,.65);
+      .pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #1e1b4b;
         font-size: 12px;
-        margin-top: 8px;
-        line-height: 1.35;
-        word-break: break-word;
+        font-weight: 600;
       }
-
-      /* Event markets list */
-      .listWrap { margin-top: 12px; display:none; }
-      .listHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
-      .listTitle { font-weight:650; }
-      .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
-      .smallSelect{ padding:8px 10px; border-radius:10px; border:1px solid #ddd; background:#fff; }
-
-      table{ width:100%; border-collapse:collapse; }
-      th, td{ text-align:left; padding:10px 10px; border-top:1px solid #eee; vertical-align:top; }
-      th{ font-size:12px; color:#666; font-weight:650; }
-      td{ font-size:13px; }
-      .tickerCell{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#333; }
-      .clickable{ cursor:pointer; }
-      .clickable:hover{ background:#fafafa; }
+      h2 {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+      }
+      label {
+        font-size: 12px;
+        color: #333;
+        display: block;
+        margin-bottom: 6px;
+      }
+      input[type="text"] {
+        flex: 1;
+        min-width: 280px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        outline: none;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #111;
+        background: #111;
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .muted {
+        color: #666;
+        font-size: 13px;
+      }
+      .error {
+        color: #b91c1c;
+        font-weight: 700;
+        margin-top: 10px;
+      }
+      .sectionTitle {
+        font-size: 14px;
+        font-weight: 900;
+        margin: 14px 0 10px;
+      }
+      .statsBar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .statTile {
+        background: linear-gradient(135deg, #0b0f1a, #111827);
+        color: white;
+        border-radius: 14px;
+        padding: 14px 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .statLabel {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 0.08em;
+      }
+      .statValue {
+        margin-top: 6px;
+        font-size: 28px;
+        font-weight: 900;
+      }
+      .legendRow {
+        margin-top: 10px;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .legendItem {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .chartWrap {
+        margin-top: 12px;
+        background: #0b0f1a;
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .chartMeta {
+        margin-top: 6px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+      }
+      th {
+        font-size: 12px;
+        color: #555;
+      }
+      tr.clickable:hover td {
+        background: #f3f4f6;
+        cursor: pointer;
+      }
+      .topRow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      select {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 13px;
+        background: white;
+      }
+      .countTag {
+        font-size: 12px;
+        color: #444;
+        background: #f3f4f6;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .debugBox {
+        margin-top: 12px;
+        padding: 10px;
+        background: #0b0f1a;
+        color: #e5e7eb;
+        border-radius: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        max-height: 240px;
+        overflow: auto;
+        display: none;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #ecfeff;
+        color: #155e75;
+        font-size: 12px;
+        font-weight: 800;
+      }
     </style>
   </head>
 
   <body>
     <div class="card">
-      <div class="row" style="justify-content:space-between;">
+      <div class="row" style="justify-content: space-between">
         <div class="pill">Kalshi Widget (market + event + chart)</div>
-        <div class="pill" id="status">Idle</div>
+        <div class="pill" id="statusPill">Idle</div>
       </div>
 
-      <!-- ✅ Always keep heading generic (no "Event: ...") -->
-      <h1 id="title">Enter a market ticker or event ticker</h1>
-
-      <div class="row" style="margin-top:10px;">
-        <div style="flex:1; min-width: 260px;">
-          <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
-        </div>
+      <div style="margin-top: 14px">
+        <h2 id="title">Enter a market ticker or event ticker</h2>
         <div class="row">
+          <div style="flex: 1">
+            <label for="tickerInput">Enter a market ticker or event ticker</label>
+            <input
+              id="tickerInput"
+              type="text"
+              placeholder="Example: KXBTC-24DEC31 or KXFEDCHAIRNOM-29"
+              autocomplete="off"
+            />
+          </div>
           <button id="loadBtn">Load</button>
         </div>
+        <div class="muted" id="meta"></div>
+        <div class="error" id="error"></div>
       </div>
 
-      <!-- Single market view -->
-      <div class="grid" id="grid" style="display:none;">
-        <div class="box">
-          <div class="label">YES bid / ask</div>
-          <div class="value" id="yesBidAsk">—</div>
-        </div>
-        <div class="box">
-          <div class="label">NO bid / ask</div>
-          <div class="value" id="noBidAsk">—</div>
-        </div>
-        <div class="box">
-          <div class="label">Last price</div>
-          <div class="value" id="lastPrice">—</div>
-        </div>
-        <div class="box">
-          <div class="label">Volume</div>
-          <div class="value" id="volume">—</div>
-        </div>
-      </div>
+      <div class="sectionTitle" id="question" style="display: none"></div>
 
-      <div class="muted" id="meta"></div>
-
-      <!-- ✅ Event question above the chart (this is where the real title should live) -->
-      <div class="question" id="question"></div>
-
-      <!-- ✅ Stats bar -->
-      <div class="row statsBar" id="statsBar">
-        <div class="statTile" id="tileVol">
-          <div class="statLabel" id="volLabel">VOLUME</div>
-          <div class="statValue" id="statVol">—</div>
+      <div class="statsBar" id="statsBar" style="display: none">
+        <div class="statTile">
+          <div class="statLabel">VOLUME (24H)</div>
+          <div class="statValue" id="vol24h">—</div>
         </div>
-        <div class="statTile" id="tileOI">
+        <div class="statTile">
           <div class="statLabel">OPEN INTEREST</div>
-          <div class="statValue" id="statOI">—</div>
-        </div>
-        <div class="statTile" id="tileLiq" style="display:none;">
-          <div class="statLabel">LIQUIDITY</div>
-          <div class="statValue" id="statLiq">—</div>
-        </div>
-        <div class="statTile" id="tileExp" style="display:none;">
-          <div class="statLabel">EXPIRATION</div>
-          <div class="statValue" id="statExp">—</div>
+          <div class="statValue" id="openInt">—</div>
         </div>
       </div>
 
-      <!-- ✅ Name legend -->
-      <div class="legendRow" id="legendRow"></div>
+      <div class="legendRow" id="legendRow" style="display: none"></div>
 
-      <!-- Chart -->
-      <div class="chartWrap" id="chartWrap">
-        <div class="chartHeader">
-          <div class="chartTitle" id="chartTitle">Chance</div>
-          <div class="btnGroup">
-            <button class="btnSmall" data-range="1d">1D</button>
-            <button class="btnSmall" data-range="1w">1W</button>
-            <button class="btnSmall" data-range="1m">1M</button>
-            <button class="btnSmall" data-range="all">ALL</button>
+      <div class="chartWrap" id="chartWrap" style="display: none">
+        <canvas id="chartCanvas" height="240"></canvas>
+        <div class="chartMeta" id="chartMeta"></div>
+      </div>
+
+      <div id="listWrap" style="display: none; margin-top: 14px">
+        <div class="topRow">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <div class="sectionTitle" id="listTitle" style="margin: 0">
+              Markets
+            </div>
+            <span class="countTag" id="countTag">0 markets</span>
           </div>
-        </div>
 
-        <div class="chartBox">
-          <canvas id="priceChart"></canvas>
-          <div class="chartMetaDark" id="chartMeta"></div>
-        </div>
-      </div>
-
-      <!-- Event markets list -->
-      <div class="listWrap" id="listWrap">
-        <div class="listHeader">
-          <!-- ✅ Always show just the ticker, not "Event markets: ..." -->
-          <div class="listTitle" id="listTitle">Markets</div>
           <div class="row">
-            <span class="tag" id="countTag">0 markets</span>
-            <select class="smallSelect" id="sortSelect" title="Sort markets">
-              <option value="yes_desc">Sort: YES bid (high → low)</option>
-              <option value="yes_asc">Sort: YES bid (low → high)</option>
-              <option value="vol_desc">Sort: Volume (high → low)</option>
-              <option value="title_asc">Sort: Title (A → Z)</option>
+            <select id="sortSelect">
+              <option value="yes_bid_desc" selected>Sort: YES bid (high → low)</option>
+              <option value="yes_bid_asc">Sort: YES bid (low → high)</option>
+              <option value="volume_desc">Sort: Volume (high → low)</option>
             </select>
           </div>
         </div>
@@ -255,76 +277,90 @@
         <table>
           <thead>
             <tr>
-              <th style="width:42%;">Market</th>
-              <th style="width:18%;">YES (bid/ask)</th>
-              <th style="width:18%;">NO (bid/ask)</th>
-              <th style="width:10%;">Vol</th>
-              <th style="width:12%;">Ticker</th>
+              <th>Market</th>
+              <th>YES (bid/ask)</th>
+              <th>NO (bid/ask)</th>
+              <th>Vol</th>
+              <th>Ticker</th>
             </tr>
           </thead>
           <tbody id="marketsTbody"></tbody>
         </table>
-
-        <div class="muted" style="margin-top:8px;">
-          Tip: click any row to load that specific market in the widget above.
-        </div>
       </div>
 
-      <div class="err" id="error"></div>
-      <div class="debug" id="debugBox"></div>
-
-      <div class="muted" style="margin-top:12px;">
-        Use <code>?ticker=...</code> for a single market or <code>?event=...</code> for an event.
-        Add <code>&debug=1</code> to show raw JSON.
-      </div>
+      <div class="debugBox" id="debugBox"></div>
     </div>
 
     <script>
-      const BASE = "https://kalshi-proxy.gmarthandan.workers.dev/api";
+      // ===========================
+      // CONFIG
+      // ===========================
+      const BASE = "https://api.elections.kalshi.com/trade-api/v2";
+      const DEBUG = false; // set true to show raw JSON
 
-      const el = (id) => document.getElementById(id);
-      const statusEl = el("status");
-      const titleEl = el("title");
-      const gridEl = el("grid");
-      const metaEl = el("meta");
-      const errEl = el("error");
-      const debugBox = el("debugBox");
-      const questionEl = el("question");
-      const inputBox = el("inputBox");
+      // ===========================
+      // DOM
+      // ===========================
+      const titleEl = document.getElementById("title");
+      const statusPill = document.getElementById("statusPill");
+      const inputBox = document.getElementById("tickerInput");
+      const loadBtn = document.getElementById("loadBtn");
+      const metaEl = document.getElementById("meta");
+      const errEl = document.getElementById("error");
+      const questionEl = document.getElementById("question");
 
-      const listWrap = el("listWrap");
-      const listTitle = el("listTitle");
-      const countTag = el("countTag");
-      const marketsTbody = el("marketsTbody");
-      const sortSelect = el("sortSelect");
+      const statsBar = document.getElementById("statsBar");
+      const vol24hEl = document.getElementById("vol24h");
+      const openIntEl = document.getElementById("openInt");
 
-      const chartWrap = el("chartWrap");
-      const chartMeta = el("chartMeta");
-      const legendRow = el("legendRow");
+      const legendRow = document.getElementById("legendRow");
 
-      const statsBar = el("statsBar");
-      const volLabel = el("volLabel");
-      const statVol = el("statVol");
-      const statOI = el("statOI");
-      const tileLiq = el("tileLiq");
-      const tileExp = el("tileExp");
+      const chartWrap = document.getElementById("chartWrap");
+      const chartCanvas = document.getElementById("chartCanvas");
+      const chartMeta = document.getElementById("chartMeta");
 
-      const params = new URLSearchParams(location.search);
-      const DEBUG = params.get("debug") === "1";
+      const listWrap = document.getElementById("listWrap");
+      const listTitle = document.getElementById("listTitle");
+      const countTag = document.getElementById("countTag");
+      const sortSelect = document.getElementById("sortSelect");
+      const marketsTbody = document.getElementById("marketsTbody");
 
-      const AUTO_REFRESH_MINUTES = 30;
-      const AUTO_REFRESH_MS = AUTO_REFRESH_MINUTES * 60 * 1000;
+      const debugBox = document.getElementById("debugBox");
 
+      // ===========================
+      // STATE
+      // ===========================
+      let chart = null;
+      let activeMode = null; // "market" | "event"
+      let activeMarketTicker = null;
       let lastEventMarkets = [];
       let activeRange = "1d";
       let activeEventTicker = null;
+      let activeEventSection = null; // e.g., "Politics · Trump"
       let activeMarketTickersForChart = null;
-      let chart = null;
 
-      let activeMode = null; // "market" | "event"
-      let activeMarketTicker = null;
-
+      // map ticker -> display name for legend labels
       const tickerToName = new Map();
+
+      // color palette for lines (fixed order, no hard-coded hex in CSS)
+      const PALETTE = ["#fb923c", "#60a5fa", "#34d399", "#f472b6", "#a78bfa", "#facc15"];
+
+      // ===========================
+      // HELPERS
+      // ===========================
+      function setStatus(text) {
+        statusPill.textContent = text;
+      }
+
+      function fmtNumber(x) {
+        if (x == null || Number.isNaN(x)) return "—";
+        return x.toLocaleString("en-US");
+      }
+
+      function fmtCentsOrNull(x) {
+        if (x == null || Number.isNaN(x)) return "—";
+        return `${Math.round(x)}¢`;
+      }
 
       function setDebug(obj) {
         if (!DEBUG) return;
@@ -332,18 +368,55 @@
         debugBox.textContent = JSON.stringify(obj, null, 2);
       }
 
-      function hardDestroyChart() {
-        const canvas = document.getElementById("priceChart");
-        if (!canvas || typeof Chart === "undefined" || !Chart.getChart) {
-          if (chart) { try { chart.destroy(); } catch (_) {} chart = null; }
-          return;
-        }
-        const existing = Chart.getChart(canvas);
-        if (existing) { try { existing.destroy(); } catch (_) {} }
-        chart = null;
+      async function fetchJSON(url) {
+        const res = await fetch(url, { headers: { accept: "application/json" } });
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+        return res.json();
+      }
 
-        const ctx = canvas.getContext("2d");
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      function isProbablyEventTicker(ticker) {
+        // Kalshi event tickers often start with KX and include hyphen-number suffix
+        // e.g., KXFEDCHAIRNOM-29
+        // Markets often include additional contract segment, e.g., KXBTC-24DEC31
+        return /^KX[A-Z0-9]+-[0-9]+$/.test(ticker);
+      }
+
+      function isProbablyMarketTicker(ticker) {
+        return /^KX[A-Z0-9]+-/.test(ticker) && !isProbablyEventTicker(ticker);
+      }
+
+      function rangeToWindow(range) {
+        const now = Math.floor(Date.now() / 1000);
+        if (range === "1d") {
+          const start = now - 60 * 60 * 24;
+          return { start, end: now, interval: 60 };
+        }
+        if (range === "7d") {
+          const start = now - 60 * 60 * 24 * 7;
+          return { start, end: now, interval: 240 };
+        }
+        // default 1d
+        const start = now - 60 * 60 * 24;
+        return { start, end: now, interval: 60 };
+      }
+
+      function hardDestroyChart() {
+        if (chart) {
+          chart.destroy();
+          chart = null;
+        }
+      }
+
+      function sortMarkets(markets, mode) {
+        const arr = [...markets];
+        if (mode === "yes_bid_asc") {
+          arr.sort((a, b) => (a.yes_bid ?? -1) - (b.yes_bid ?? -1));
+        } else if (mode === "volume_desc") {
+          arr.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+        } else {
+          arr.sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1));
+        }
+        return arr;
       }
 
       function clearUI() {
@@ -370,60 +443,76 @@
         chartWrap.style.display = "none";
         chartMeta.textContent = "";
         activeEventTicker = null;
+        activeEventSection = null;
         activeMarketTickersForChart = null;
 
         activeMode = null;
         activeMarketTicker = null;
 
         tileLiq.style.display = "none";
-        tileExp.style.display = "none";
-
-        hardDestroyChart();
+        tileMarket.style.display = "none";
+        tileMarket.textContent = "";
+        tileLiq.textContent = "";
       }
 
-      function fmtCentsOrNull(x) {
-        if (x === null || x === undefined) return "—";
-        if (typeof x === "number") return `${x}¢`;
-        return String(x);
+      // ===========================
+      // MARKET DETAIL UI
+      // ===========================
+      const gridEl = document.createElement("div");
+      gridEl.style.display = "none";
+      gridEl.style.marginTop = "12px";
+      gridEl.style.display = "grid";
+      gridEl.style.gridTemplateColumns = "1fr 1fr";
+      gridEl.style.gap = "12px";
+
+      const tileMarket = document.createElement("div");
+      tileMarket.className = "statTile";
+      tileMarket.style.display = "none";
+
+      const tileLiq = document.createElement("div");
+      tileLiq.className = "statTile";
+      tileLiq.style.display = "none";
+
+      gridEl.appendChild(tileMarket);
+      gridEl.appendChild(tileLiq);
+      document.querySelector(".card").appendChild(gridEl);
+
+      // ===========================
+      // DATA FETCH
+      // ===========================
+      async function fetchMarket(marketTicker) {
+        const url = `${BASE}/markets/${encodeURIComponent(marketTicker)}`;
+        const payload = await fetchJSON(url);
+        setDebug(payload);
+        return payload.market ?? payload;
       }
 
-      function n(x) {
-        return (typeof x === "number" && !Number.isNaN(x)) ? x : null;
+      async function fetchMarketsByEvent(eventTicker) {
+        const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
+        const payload = await fetchJSON(url);
+        setDebug(payload);
+        return payload.markets ?? [];
       }
 
-      function formatInt(x) {
-        if (typeof x !== "number" || Number.isNaN(x)) return "—";
-        return x.toLocaleString();
+      async function fetchCandlesForMarketTickers(tickers) {
+        const { start, end, interval } = rangeToWindow(activeRange);
+        const url =
+          `${BASE}/markets/candlesticks` +
+          `?market_tickers=${encodeURIComponent(tickers.join(","))}` +
+          `&start_ts=${start}&end_ts=${end}&period_interval=${interval}` +
+          `&include_latest_before_start=true`;
+        const payload = await fetchJSON(url);
+        setDebug(payload);
+        return payload.markets ?? [];
       }
 
-      function extractCandidateNameFromTitle(title, fallbackTicker) {
-        const t = (title || "").trim();
-        const m = t.match(/nominate\s+(.+?)\s+as\s+/i);
-        if (m && m[1]) return m[1].trim();
-
-        const parts = (fallbackTicker || "").split("-");
-        return parts[parts.length - 1] || fallbackTicker || "—";
-      }
-
-      function sortMarkets(markets, mode) {
-        const m = [...markets];
-        const yesBid = (o) => (typeof o.yes_bid === "number" ? o.yes_bid : -Infinity);
-        const vol = (o) => (typeof o.volume === "number" ? o.volume : -Infinity);
-        const title = (o) => (o.title || "").toLowerCase();
-
-        switch (mode) {
-          case "yes_asc":  m.sort((a,b) => yesBid(a) - yesBid(b)); break;
-          case "vol_desc": m.sort((a,b) => vol(b) - vol(a)); break;
-          case "title_asc": m.sort((a,b) => title(a).localeCompare(title(b))); break;
-          case "yes_desc":
-          default: m.sort((a,b) => yesBid(b) - yesBid(a)); break;
-        }
-        return m;
-      }
-
+      // ===========================
+      // LIST RENDER
+      // ===========================
       function renderMarketsList(markets) {
         listWrap.style.display = "block";
-        listTitle.textContent = "Markets"; // ✅ no event ticker here
+        // ✅ Use event section label like "Politics · Trump" when available
+        listTitle.textContent = activeEventSection || "Markets";
         countTag.textContent = `${markets.length} markets`;
 
         const sorted = sortMarkets(markets, sortSelect.value);
@@ -443,129 +532,171 @@
           });
 
           const yes = `${fmtCentsOrNull(mk.yes_bid)} / ${fmtCentsOrNull(mk.yes_ask)}`;
-          const no  = `${fmtCentsOrNull(mk.no_bid)} / ${fmtCentsOrNull(mk.no_ask)}`;
+          const no = `${fmtCentsOrNull(mk.no_bid)} / ${fmtCentsOrNull(mk.no_ask)}`;
 
           tr.innerHTML = `
-            <td>${mk.title || "—"}</td>
+            <td>${mk.title || mk.name || "—"}</td>
             <td>${yes}</td>
             <td>${no}</td>
-            <td>${mk.volume ?? "—"}</td>
-            <td class="tickerCell">${mk.ticker || "—"}</td>
+            <td>${fmtNumber(mk.volume)}</td>
+            <td><span class="badge">${mk.ticker || "—"}</span></td>
           `;
           marketsTbody.appendChild(tr);
         }
       }
 
-      async function fetchJSON(url) {
-        const res = await fetch(url, { headers: { "Accept": "application/json" } });
-        if (!res.ok) {
-          let extra = "";
-          try {
-            const j = await res.json();
-            extra = j?.error?.message ? ` — ${j.error.message}` : "";
-            setDebug(j);
-          } catch (_) {}
-          throw new Error(`HTTP ${res.status}${extra}`);
+      // ===========================
+      // CHART RENDER
+      // ===========================
+      function makeLegend(items) {
+        legendRow.innerHTML = "";
+        for (const it of items) {
+          const div = document.createElement("span");
+          div.className = "legendItem";
+          div.innerHTML = `<span class="dot" style="background:${it.color}"></span>${it.label}`;
+          legendRow.appendChild(div);
         }
-        return res.json();
+        legendRow.style.display = "flex";
       }
 
-      function rangeToWindow(range) {
-        const nowSec = Math.floor(Date.now() / 1000);
-        if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };
-        if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 };
-        if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 };
-        return { start: nowSec - 365*86400, end: nowSec, interval: 1440 };
+      function buildDatasetsFromCandles(marketsCandles) {
+        // marketsCandles: [{market_ticker, candlesticks:[{start_ts, yes_close, ...}]}]
+        const datasets = [];
+        const legendItems = [];
+
+        marketsCandles.forEach((mc, idx) => {
+          const ticker = mc.market_ticker;
+          const c = PALETTE[idx % PALETTE.length];
+          const label = tickerToName.get(ticker) || ticker;
+
+          legendItems.push({ label, color: c });
+
+          const points = (mc.candlesticks || []).map((k) => ({
+            x: k.start_ts * 1000,
+            y: (k.yes_close ?? k.yes_last ?? k.yes_open ?? null) / 100.0,
+          }));
+
+          datasets.push({
+            label,
+            data: points,
+            borderColor: c,
+            backgroundColor: c,
+            pointRadius: 0,
+            tension: 0.25,
+            borderWidth: 2,
+          });
+        });
+
+        return { datasets, legendItems };
       }
 
-      function toChartPoints(candles) {
-        const pts = [];
-        for (const c of (candles || [])) {
-          const ts = c.end_period_ts;
-          const close = c?.price?.close;
-          if (typeof ts === "number" && typeof close === "number") {
-            pts.push({ x: ts * 1000, y: close });
-          }
-        }
-        return pts;
+      function renderChart(marketsCandles, rangeLabel) {
+        const { datasets, legendItems } = buildDatasetsFromCandles(marketsCandles);
+
+        chartWrap.style.display = "block";
+        makeLegend(legendItems);
+
+        const ctx = chartCanvas.getContext("2d");
+        hardDestroyChart();
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { datasets },
+          options: {
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const v = ctx.parsed.y;
+                    if (v == null) return `${ctx.dataset.label}: —`;
+                    return `${ctx.dataset.label}: ${(v * 100).toFixed(1)}%`;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                type: "time",
+                time: { unit: "hour" },
+                ticks: { color: "rgba(255,255,255,.7)" },
+                grid: { color: "rgba(255,255,255,.08)" },
+              },
+              y: {
+                min: 0,
+                max: 1,
+                ticks: {
+                  color: "rgba(255,255,255,.7)",
+                  callback: (v) => `${Math.round(v * 100)}%`,
+                },
+                grid: { color: "rgba(255,255,255,.08)" },
+              },
+            },
+          },
+        });
+
+        chartMeta.textContent = rangeLabel;
       }
 
-      function lastNonNull(arr, getter) {
-        for (let i = arr.length - 1; i >= 0; i--) {
-          const v = getter(arr[i]);
-          if (v !== null && v !== undefined) return v;
+      // ===========================
+      // EVENT INFO (title + section)
+      // ===========================
+      function pickFirstString(obj, keys) {
+        for (const k of keys) {
+          const v = obj?.[k];
+          if (typeof v === "string" && v.trim()) return v.trim();
         }
         return null;
       }
 
-      function sumNumbers(arr, getter) {
-        let s = 0;
-        for (const x of arr) {
-          const v = getter(x);
-          if (typeof v === "number" && !Number.isNaN(v)) s += v;
-        }
-        return s;
+      function buildEventSection(ev) {
+        // Try common shapes Kalshi APIs use (varies by endpoint/version)
+        const category =
+          pickFirstString(ev, ["category_title", "category", "category_name"]) ||
+          pickFirstString(ev?.category, ["title", "name"]) ||
+          (Array.isArray(ev?.categories)
+            ? pickFirstString(ev.categories[0], ["title", "name"])
+            : null);
+
+        const topic =
+          pickFirstString(ev, [
+            "series_title",
+            "series",
+            "topic",
+            "subcategory_title",
+            "subtitle",
+          ]) ||
+          pickFirstString(ev?.series, ["title", "name"]) ||
+          (Array.isArray(ev?.tags)
+            ? typeof ev.tags[0] === "string"
+              ? ev.tags[0]
+              : pickFirstString(ev.tags[0], ["title", "name"])
+            : null);
+
+        if (category && topic) return `${category} · ${topic}`;
+        if (category) return category;
+        if (topic) return topic;
+        return null;
       }
 
-      function setVolumeLabel() {
-        volLabel.textContent =
-          activeRange === "1d" ? "VOLUME (24H)" :
-          activeRange === "1w" ? "VOLUME (7D)" :
-          activeRange === "1m" ? "VOLUME (30D)" : "VOLUME (RANGE)";
-      }
-
-      function renderLegendFromDatasets(datasets) {
-        legendRow.innerHTML = "";
-        if (!Array.isArray(datasets) || datasets.length === 0) {
-          legendRow.style.display = "none";
-          return;
-        }
-        legendRow.style.display = "flex";
-
-        for (const ds of datasets) {
-          const data = Array.isArray(ds.data) ? ds.data : [];
-          const last = data.length ? data[data.length - 1].y : null;
-          const pct = (typeof last === "number") ? `${Math.round(last)}%` : "—";
-
-          const item = document.createElement("div");
-          item.className = "legendItem";
-
-          const dot = document.createElement("span");
-          dot.className = "dot";
-          dot.style.background = ds.borderColor || "#999";
-
-          const name = document.createElement("span");
-          name.textContent = ds.label || "—";
-
-          const pctEl = document.createElement("span");
-          pctEl.className = "legendPct";
-          pctEl.textContent = pct;
-
-          item.appendChild(dot);
-          item.appendChild(name);
-          item.appendChild(pctEl);
-
-          legendRow.appendChild(item);
-        }
-      }
-
-      function prettyMarketsLine(tickers) {
-        const names = (tickers || [])
-          .map(t => tickerToName.get((t || "").toUpperCase()) || t)
-          .filter(Boolean);
-        return names.join(" , ");
-      }
-
-      async function fetchEventTitle(eventTicker) {
+      async function fetchEventInfo(eventTicker) {
         try {
           const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
           const payload = await fetchJSON(url);
           if (DEBUG) setDebug(payload);
+
           const ev = payload.event ?? payload;
-          const t = ev?.title || ev?.name || ev?.question;
-          if (typeof t === "string" && t.trim()) return t.trim();
-        } catch (_) {}
-        return null;
+
+          const title = pickFirstString(ev, ["title", "name", "question"]) || null;
+          const section = buildEventSection(ev);
+
+          return { title, section };
+        } catch (_) {
+          return { title: null, section: null };
+        }
       }
 
       async function loadChartForMarketTickers(tickers) {
@@ -588,194 +719,56 @@
           throw new Error("No candlestick data returned for chart range.");
         }
 
-        const totalOI = sumNumbers(markets, (m) => {
-          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
-          return lastNonNull(cs, (c) => c.open_interest);
-        });
+        const rangeLabel = `Range: ${activeRange.toUpperCase()} · Interval: ${interval}m · Markets: ${tickers
+          .map((t) => tickerToName.get(t) || t)
+          .join(", ")}`;
 
-        const totalVol = sumNumbers(markets, (m) => {
-          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
-          return sumNumbers(cs, (c) => c.volume);
-        });
-
-        setVolumeLabel();
-        statsBar.style.display = "flex";
-        statVol.textContent = formatInt(totalVol);
-        statOI.textContent = formatInt(totalOI);
-
-        const byTicker = new Map();
-        for (const m of markets) byTicker.set((m.market_ticker || "").toUpperCase(), m);
-
-        const orderedMarkets = tickers
-          .map(t => byTicker.get((t || "").toUpperCase()))
-          .filter(Boolean);
-
-        const palette = ["#f97316", "#3b82f6", "#20c997", "#a855f7", "#ef4444", "#eab308"];
-
-        const datasets = orderedMarkets.map((m, idx) => {
-          const marketTicker = (m.market_ticker || "").toUpperCase();
-          const label = tickerToName.get(marketTicker) || marketTicker;
-          const data = toChartPoints(m.candlesticks);
-          const color = palette[idx % palette.length];
-
-          return {
-            label,
-            data,
-            borderColor: color,
-            backgroundColor: color + "22",
-            borderWidth: 2.5,
-            tension: 0.35,
-            pointRadius: 0,
-            fill: true,
-          };
-        }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
-
-        chartWrap.style.display = "block";
-
-        chartMeta.textContent =
-          `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${prettyMarketsLine(tickers)}`;
-
-        renderLegendFromDatasets(datasets);
-
-        const canvas = document.getElementById("priceChart");
-        const existing = Chart.getChart ? Chart.getChart(canvas) : null;
-        if (existing) existing.destroy();
-
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        chart = new Chart(ctx, {
-          type: "line",
-          data: { datasets },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            parsing: false,
-            animation: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                mode: "index",
-                intersect: false,
-                callbacks: {
-                  label: (ctx) => {
-                    const v = ctx.parsed?.y;
-                    const nm = ctx.dataset?.label || "";
-                    return `${nm}: ${typeof v === "number" ? v.toFixed(1) + "%" : "—"}`;
-                  }
-                }
-              }
-            },
-            interaction: { mode: "index", intersect: false },
-            scales: {
-              x: {
-                type: "time",
-                grid: { color: "rgba(255,255,255,.06)" },
-                ticks: { color: "rgba(255,255,255,.70)", maxRotation: 0, autoSkip: true },
-                border: { color: "rgba(255,255,255,.12)" }
-              },
-              y: {
-                suggestedMin: 0,
-                suggestedMax: 100,
-                grid: { color: "rgba(255,255,255,.06)" },
-                ticks: { color: "rgba(255,255,255,.70)", callback: (v) => `${v}%` },
-                border: { color: "rgba(255,255,255,.12)" }
-              }
-            }
-          }
-        });
+        renderChart(markets, rangeLabel);
       }
 
-      async function refreshActiveMarketSnapshot() {
-        if (!activeMarketTicker) return;
-        const ticker = activeMarketTicker;
-
-        const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
-        const payload = await fetchJSON(url);
-        if (DEBUG) setDebug(payload);
-
-        const data = payload.market ?? payload;
-        if (!data || typeof data !== "object") return;
-
-        el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
-        el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
-        el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
-        el("volume").textContent = (data.volume ?? "—").toString();
-        metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
-        gridEl.style.display = "grid";
-      }
-
-      async function refreshActiveEventList() {
-        if (!activeEventTicker) return;
-        const eventTicker = activeEventTicker;
-
-        const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
-        const payload = await fetchJSON(url);
-        if (DEBUG) setDebug(payload);
-
-        const markets = payload.markets ?? [];
-        if (!Array.isArray(markets) || markets.length === 0) return;
-
-        lastEventMarkets = markets;
-        metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
-
-        // Still keep meta line, but you asked to not repeat ticker in headings, so list header stays "Markets"
-        renderMarketsList(markets);
-
-        tickerToName.clear();
-        for (const m of markets) {
-          const tkr = (m.ticker || "").toUpperCase();
-          const nm = extractCandidateNameFromTitle(m.title, tkr);
-          tickerToName.set(tkr, nm);
-        }
-
-        const topTickers = [...markets]
-          .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
-          .slice(0, 3)
-          .map(m => (m.ticker || "").toUpperCase())
-          .filter(Boolean);
-
-        activeMarketTickersForChart = topTickers;
-      }
-
-      async function loadMarket(tickerRaw) {
-        const ticker = (tickerRaw || "").trim().toUpperCase();
+      // ===========================
+      // LOADERS
+      // ===========================
+      async function loadMarket(marketTickerRaw) {
+        const marketTicker = (marketTickerRaw || "").trim().toUpperCase();
         clearUI();
         statusEl.textContent = "Loading market…";
 
         try {
-          const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
-          const payload = await fetchJSON(url);
-          setDebug(payload);
-
-          const data = payload.market ?? payload;
-          if (payload && payload.error) throw new Error(payload.error.message || "Kalshi returned an error");
-          if (!data || typeof data !== "object" || (!("title" in data) && !("ticker" in data))) {
-            throw new Error("Unexpected response shape from proxy");
-          }
-
           activeMode = "market";
-          activeMarketTicker = (data.ticker || ticker).toUpperCase();
+          activeMarketTicker = marketTicker;
 
-          // For single market we can show the market title in meta, but headings remain generic
-          metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
+          const mk = await fetchMarket(marketTicker);
 
-          el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
-          el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
-          el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
-          el("volume").textContent = (data.volume ?? "—").toString();
+          const title = mk.title || mk.name || marketTicker;
+          titleEl.textContent = title;
+          metaEl.textContent = `Showing market: ${marketTicker}`;
 
+          // Basic tiles
           gridEl.style.display = "grid";
+          tileMarket.style.display = "block";
+          tileLiq.style.display = "block";
+          tileMarket.innerHTML = `<div class="statLabel">MARKET</div><div class="statValue" style="font-size:18px;margin-top:8px">${title}</div>`;
+          tileLiq.innerHTML = `<div class="statLabel">LIQUIDITY</div><div class="statValue">${fmtNumber(mk.liquidity)}</div>`;
+
+          // Stats bar
+          statsBar.style.display = "grid";
+          vol24hEl.textContent = fmtNumber(mk.volume_24h);
+          openIntEl.textContent = fmtNumber(mk.open_interest);
+
+          // Set name for legend
+          tickerToName.set(marketTicker, title);
+
+          // Chart single market
+          activeMarketTickersForChart = [marketTicker];
+          await loadChartForMarketTickers([marketTicker]);
+
+          setStatus("Loaded");
           statusEl.textContent = "Loaded";
-
-          tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
-
-          activeMarketTickersForChart = [activeMarketTicker];
-          await loadChartForMarketTickers(activeMarketTickersForChart);
-
         } catch (e) {
+          errEl.textContent = e.message || String(e);
+          setStatus("Error");
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that market.\n${e.message}`;
         }
       }
 
@@ -788,8 +781,10 @@
           activeMode = "event";
           activeEventTicker = eventTicker;
 
-          const eventTitle = await fetchEventTitle(eventTicker);
-          questionEl.textContent = eventTitle || "Event question unavailable";
+          const info = await fetchEventInfo(eventTicker);
+
+          activeEventSection = info.section; // e.g., "Politics · Trump"
+          questionEl.textContent = info.title || "Event question unavailable";
           questionEl.style.display = "block";
 
           const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
@@ -802,133 +797,86 @@
           }
 
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+
+          // Populate tickerToName for legend
+          markets.forEach((m) => {
+            if (m?.ticker) tickerToName.set(m.ticker, m.title || m.name || m.ticker);
+          });
+
           lastEventMarkets = markets;
-
-          tickerToName.clear();
-          for (const m of markets) {
-            const tkr = (m.ticker || "").toUpperCase();
-            const nm = extractCandidateNameFromTitle(m.title, tkr);
-            tickerToName.set(tkr, nm);
-          }
-
-          // Top 3 by YES bid
-          const tickersToChart = [...markets]
-            .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
-            .slice(0, 3)
-            .map(m => (m.ticker || "").toUpperCase())
-            .filter(Boolean);
-
-          activeMarketTickersForChart = tickersToChart;
-
           renderMarketsList(markets);
-          await loadChartForMarketTickers(activeMarketTickersForChart);
 
+          // Stats: sum volume_24h and open_interest across event markets (approx)
+          const vol24h = markets.reduce((acc, m) => acc + (m.volume_24h ?? 0), 0);
+          const openInt = markets.reduce((acc, m) => acc + (m.open_interest ?? 0), 0);
+
+          statsBar.style.display = "grid";
+          vol24hEl.textContent = fmtNumber(vol24h);
+          openIntEl.textContent = fmtNumber(openInt);
+
+          // Chart: top 3 by YES bid by default
+          const top = sortMarkets(markets, "yes_bid_desc").slice(0, 3);
+          const tickers = top.map((m) => m.ticker).filter(Boolean);
+          activeMarketTickersForChart = tickers;
+
+          await loadChartForMarketTickers(tickers);
+
+          setStatus("Loaded");
           statusEl.textContent = "Loaded";
         } catch (e) {
+          errEl.textContent = e.message || String(e);
+          setStatus("Error");
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXFEDCHAIRNOM-29 (all caps).`;
         }
       }
 
-      function isProbablyEventTicker(s) {
-        const hyphens = (s.match(/-/g) || []).length;
-        return hyphens === 1;
-      }
+      // ===========================
+      // USER ACTIONS
+      // ===========================
+      async function loadFromInput() {
+        const raw = inputBox.value || "";
+        const t = raw.trim().toUpperCase();
+        if (!t) return;
 
-      async function loadFromInput(raw) {
-        const value = (raw || "").trim().toUpperCase();
-        if (!value) return;
+        setStatus("Loading…");
+        statusEl.textContent = "Loading…";
 
-        inputBox.value = value;
+        // Guess type
+        if (isProbablyEventTicker(t)) return loadEvent(t);
+        if (isProbablyMarketTicker(t)) return loadMarket(t);
 
-        const newUrl = new URL(location.href);
-        if (isProbablyEventTicker(value)) {
-          newUrl.searchParams.delete("ticker");
-          newUrl.searchParams.set("event", value);
-          history.replaceState({}, "", newUrl);
-          await loadEvent(value);
-        } else {
-          newUrl.searchParams.delete("event");
-          newUrl.searchParams.set("ticker", value);
-          history.replaceState({}, "", newUrl);
-          await loadMarket(value);
+        // If unsure, try event first then market
+        try {
+          await loadEvent(t);
+        } catch (_) {
+          await loadMarket(t);
         }
       }
 
-      inputBox.addEventListener("input", () => {
-        const start = inputBox.selectionStart;
-        const end = inputBox.selectionEnd;
-        const upper = inputBox.value.toUpperCase();
-        if (inputBox.value !== upper) {
-          inputBox.value = upper;
-          try { inputBox.setSelectionRange(start, end); } catch (_) {}
-        }
+      loadBtn.addEventListener("click", loadFromInput);
+      inputBox.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") loadFromInput();
       });
 
       sortSelect.addEventListener("change", () => {
-        if (!lastEventMarkets.length) return;
-        renderMarketsList(lastEventMarkets);
+        if (activeMode === "event" && Array.isArray(lastEventMarkets) && lastEventMarkets.length) {
+          renderMarketsList(lastEventMarkets);
+        }
       });
 
-      document.querySelectorAll("[data-range]").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          activeRange = btn.getAttribute("data-range");
-          if (!activeMarketTickersForChart) return;
-          try {
-            await loadChartForMarketTickers(activeMarketTickersForChart);
-          } catch (e) {
-            errEl.textContent = `Chart error:\n${e.message}`;
-          }
-        });
-      });
-
-      const urlTicker = (params.get("ticker") || "").trim();
-      const urlEvent = (params.get("event") || "").trim();
-
-      if (urlEvent) {
-        const up = urlEvent.toUpperCase();
-        inputBox.value = up;
+      // ===========================
+      // INIT: read query params
+      // ===========================
+      (function init() {
         const u = new URL(location.href);
-        if (u.searchParams.get("event") !== up) {
-          u.searchParams.set("event", up);
-          history.replaceState({}, "", u);
+        const qp = (u.searchParams.get("ticker") || u.searchParams.get("event") || "").trim();
+        if (qp) {
+          inputBox.value = qp.toUpperCase();
+          loadFromInput();
+        } else {
+          setStatus("Idle");
         }
-        loadEvent(up);
-      } else if (urlTicker) {
-        const up = urlTicker.toUpperCase();
-        inputBox.value = up;
-        const u = new URL(location.href);
-        if (u.searchParams.get("ticker") !== up) {
-          u.searchParams.set("ticker", up);
-          history.replaceState({}, "", u);
-        }
-        loadMarket(up);
-      }
-
-      el("loadBtn").addEventListener("click", () => loadFromInput(inputBox.value));
-      inputBox.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); loadFromInput(inputBox.value); }
-      });
-
-      setInterval(async () => {
-        if (document.hidden) return;
-        if (!activeMarketTickersForChart) return;
-
-        try {
-          statusEl.textContent = "Refreshing…";
-
-          if (activeMode === "market") {
-            await refreshActiveMarketSnapshot();
-          } else if (activeMode === "event") {
-            await refreshActiveEventList();
-          }
-
-          await loadChartForMarketTickers(activeMarketTickersForChart);
-          statusEl.textContent = "Loaded";
-        } catch (_) {
-          statusEl.textContent = "Loaded";
-        }
-      }, AUTO_REFRESH_MS);
+      })();
     </script>
   </body>
 </html>
