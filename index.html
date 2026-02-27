@@ -201,11 +201,19 @@
       const params = new URLSearchParams(location.search);
       const DEBUG = params.get("debug") === "1";
 
+      // ✅ Auto-refresh settings
+      const AUTO_REFRESH_MINUTES = 30;
+      const AUTO_REFRESH_MS = AUTO_REFRESH_MINUTES * 60 * 1000;
+
       let lastEventMarkets = [];
       let activeRange = "1d";
       let activeEventTicker = null;
       let activeMarketTickersForChart = null; // array of tickers to plot
       let chart = null; // still keep a handle, but we will HARD-destroy via Chart.getChart()
+
+      // ✅ Track which mode we're in so auto-refresh also updates the top snapshot
+      let activeMode = null; // "market" | "event"
+      let activeMarketTicker = null; // current single market ticker (when activeMode === "market")
 
       function setDebug(obj) {
         if (!DEBUG) return;
@@ -247,6 +255,10 @@
         chartMeta.textContent = "";
         activeEventTicker = null;
         activeMarketTickersForChart = null;
+
+        // ✅ also clear "current mode" tracking
+        activeMode = null;
+        activeMarketTicker = null;
 
         // ✅ IMPORTANT: destroy any chart bound to the canvas
         hardDestroyChart();
@@ -429,6 +441,52 @@
         });
       }
 
+      // ✅ Refresh helpers (no clearUI, so it doesn't flicker)
+      async function refreshActiveMarketSnapshot() {
+        if (!activeMarketTicker) return;
+        const ticker = activeMarketTicker;
+
+        const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const data = payload.market ?? payload;
+        if (!data || typeof data !== "object") return;
+
+        // Only update fields that exist on the page (avoid hard resets)
+        titleEl.textContent = data.title || ticker;
+        el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
+        el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
+        el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
+        el("volume").textContent = (data.volume ?? "—").toString();
+        metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
+        gridEl.style.display = "grid";
+      }
+
+      async function refreshActiveEventList() {
+        if (!activeEventTicker) return;
+        const eventTicker = activeEventTicker;
+
+        const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const markets = payload.markets ?? [];
+        if (!Array.isArray(markets) || markets.length === 0) return;
+
+        lastEventMarkets = markets;
+        metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+        renderMarketsList(eventTicker, markets);
+
+        // Keep chart aligned with top 2 by volume
+        const topByVol = [...markets].sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
+        const tickersToChart = (markets.length >= 2 ? topByVol.slice(0, 2) : topByVol.slice(0, 1))
+          .map(m => m.ticker)
+          .filter(Boolean);
+
+        activeMarketTickersForChart = tickersToChart;
+      }
+
       async function loadMarket(ticker) {
         clearUI();
         statusEl.textContent = "Loading market…";
@@ -443,6 +501,10 @@
           if (!data || typeof data !== "object" || (!("title" in data) && !("ticker" in data))) {
             throw new Error("Unexpected response shape from proxy");
           }
+
+          // ✅ set mode
+          activeMode = "market";
+          activeMarketTicker = data.ticker || ticker;
 
           titleEl.textContent = data.title || ticker;
 
@@ -482,11 +544,14 @@
             throw new Error("No markets found for that event ticker (or event ticker is wrong).");
           }
 
+          // ✅ set mode
+          activeMode = "event";
+          activeEventTicker = eventTicker;
+
           titleEl.textContent = `Event: ${eventTicker}`;
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
           lastEventMarkets = markets;
-          activeEventTicker = eventTicker;
           renderMarketsList(eventTicker, markets);
 
           // Chart the top 2 by volume (Kalshi-like for game events)
@@ -565,6 +630,32 @@
       el("inputBox").addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); loadFromInput(el("inputBox").value); }
       });
+
+      // ✅ Auto-refresh every 30 minutes (no flicker, refreshes list/snapshot + chart)
+      setInterval(async () => {
+        if (document.hidden) return; // don't refresh in background tabs
+        if (!activeMarketTickersForChart) return;
+
+        try {
+          statusEl.textContent = "Refreshing…";
+
+          if (activeMode === "market") {
+            await refreshActiveMarketSnapshot();
+          } else if (activeMode === "event") {
+            await refreshActiveEventList();
+          }
+
+          // refresh chart last (uses activeMarketTickersForChart)
+          await loadChartForMarketTickers(activeMarketTickersForChart);
+
+          statusEl.textContent = "Loaded";
+        } catch (e) {
+          // keep UI usable; just show a subtle error
+          statusEl.textContent = "Loaded";
+          // Uncomment if you want to display refresh errors:
+          // errEl.textContent = `Auto-refresh error:\n${e.message}`;
+        }
+      }, AUTO_REFRESH_MS);
     </script>
   </body>
 </html>
