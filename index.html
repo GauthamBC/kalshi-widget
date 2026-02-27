@@ -61,15 +61,15 @@
         flex-wrap:wrap;
       }
       .statTile{
-        flex: 1 1 200px;
-        min-width: 180px;
+        flex: 1 1 220px;
+        min-width: 200px;
         background:#0f1115;
         border:1px solid rgba(255,255,255,.10);
         border-radius:14px;
         padding:12px 14px;
       }
-      .statLabel{ font-size:12px; color:rgba(255,255,255,.65); }
-      .statValue{ margin-top:4px; font-size:20px; font-weight:800; color:#fff; letter-spacing:.2px; }
+      .statLabel{ font-size:12px; color:rgba(255,255,255,.65); letter-spacing:.3px; }
+      .statValue{ margin-top:4px; font-size:22px; font-weight:850; color:#fff; letter-spacing:.2px; }
 
       /* Custom legend like Image 1 */
       .legendRow{
@@ -84,7 +84,7 @@
         align-items:center;
         gap:10px;
         font-size:16px;
-        font-weight:600;
+        font-weight:650;
         color:#111;
       }
       .dot{
@@ -92,7 +92,7 @@
         display:inline-block;
       }
       .legendPct{
-        font-weight:800;
+        font-weight:850;
         color:#111;
         margin-left:6px;
       }
@@ -130,6 +130,8 @@
         color: rgba(255,255,255,.65);
         font-size: 12px;
         margin-top: 8px;
+        line-height: 1.35;
+        word-break: break-word;
       }
 
       /* Event markets list */
@@ -195,13 +197,14 @@
       <!-- ✅ Stats bar (like Image 5) -->
       <div class="row statsBar" id="statsBar">
         <div class="statTile" id="tileVol">
-          <div class="statLabel">VOLUME</div>
+          <div class="statLabel" id="volLabel">VOLUME</div>
           <div class="statValue" id="statVol">—</div>
         </div>
-        <div class="statTile" id="tileOI" style="display:none;">
+        <div class="statTile" id="tileOI">
           <div class="statLabel">OPEN INTEREST</div>
           <div class="statValue" id="statOI">—</div>
         </div>
+        <!-- Liquidity + Expiration: hidden unless your proxy provides them (not in candlesticks JSON) -->
         <div class="statTile" id="tileLiq" style="display:none;">
           <div class="statLabel">LIQUIDITY</div>
           <div class="statValue" id="statLiq">—</div>
@@ -301,11 +304,11 @@
       const legendRow = el("legendRow");
 
       const statsBar = el("statsBar");
+      const volLabel = el("volLabel");
       const statVol = el("statVol");
       const statOI = el("statOI");
       const statLiq = el("statLiq");
       const statExp = el("statExp");
-      const tileOI = el("tileOI");
       const tileLiq = el("tileLiq");
       const tileExp = el("tileExp");
 
@@ -326,9 +329,8 @@
       let activeMode = null; // "market" | "event"
       let activeMarketTicker = null; // for single market
 
-      // Map tickers -> friendly names (for the legend)
-      const tickerToName = new Map(); // marketTicker -> "Kevin Warsh"
-      let tickersToChartWithNames = []; // [{ticker, name}]
+      // Map tickers -> friendly names
+      const tickerToName = new Map(); // "KXFEDCHAIRNOM-29-KW" -> "Kevin Warsh"
 
       function setDebug(obj) {
         if (!DEBUG) return;
@@ -363,12 +365,10 @@
         questionEl.style.display = "none";
         questionEl.textContent = "";
 
-        // stats + legend
         statsBar.style.display = "none";
         legendRow.style.display = "none";
         legendRow.innerHTML = "";
         tickerToName.clear();
-        tickersToChartWithNames = [];
 
         chartWrap.style.display = "none";
         chartMeta.textContent = "";
@@ -377,6 +377,12 @@
 
         activeMode = null;
         activeMarketTicker = null;
+
+        // Hide tiles that require extra endpoints (unless your proxy supports them)
+        tileLiq.style.display = "none";
+        tileExp.style.display = "none";
+        statLiq.textContent = "—";
+        statExp.textContent = "—";
 
         hardDestroyChart();
       }
@@ -396,23 +402,12 @@
         return x.toLocaleString();
       }
 
-      function formatMoney(x) {
-        if (typeof x !== "number" || Number.isNaN(x)) return "—";
-        return x.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-      }
-
       function extractCandidateNameFromTitle(title, fallbackTicker) {
         const t = (title || "").trim();
-        // Handles: "Will Trump next nominate Kevin Warsh as Fed Chair?"
-        // Also tolerates: "Will Trump nominate Kevin Warsh as Fed Chair?"
+        // "Will Trump next nominate Kevin Warsh as Fed Chair?"
         const m = t.match(/nominate\s+(.+?)\s+as\s+/i);
         if (m && m[1]) return m[1].trim();
 
-        // Another pattern sometimes: "Kevin Warsh to be nominated..."
-        const m2 = t.match(/^(.+?)\s+(?:to be|will be)\s+/i);
-        if (m2 && m2[1] && m2[1].length < 40) return m2[1].trim();
-
-        // fallback: last token after '-' (KW / JS etc.)
         const parts = (fallbackTicker || "").split("-");
         return parts[parts.length - 1] || fallbackTicker || "—";
       }
@@ -487,7 +482,7 @@
         if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };
         if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 };
         if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 };
-        return { start: nowSec - 365*86400, end: nowSec, interval: 1440 }; // "ALL" = last year daily
+        return { start: nowSec - 365*86400, end: nowSec, interval: 1440 }; // ALL = last year daily
       }
 
       function toChartPoints(candles) {
@@ -502,7 +497,31 @@
         return pts;
       }
 
-      // ✅ Build the Image-1 style legend using dataset colors and last y-value
+      function lastNonNull(arr, getter) {
+        for (let i = arr.length - 1; i >= 0; i--) {
+          const v = getter(arr[i]);
+          if (v !== null && v !== undefined) return v;
+        }
+        return null;
+      }
+
+      function sumNumbers(arr, getter) {
+        let s = 0;
+        for (const x of arr) {
+          const v = getter(x);
+          if (typeof v === "number" && !Number.isNaN(v)) s += v;
+        }
+        return s;
+      }
+
+      function setVolumeLabel() {
+        volLabel.textContent =
+          activeRange === "1d" ? "VOLUME (24H)" :
+          activeRange === "1w" ? "VOLUME (7D)" :
+          activeRange === "1m" ? "VOLUME (30D)" : "VOLUME (RANGE)";
+      }
+
+      // Image-1 style legend using dataset colors + last point
       function renderLegendFromDatasets(datasets) {
         legendRow.innerHTML = "";
         if (!Array.isArray(datasets) || datasets.length === 0) {
@@ -538,46 +557,20 @@
         }
       }
 
-      // Nice stats bar (Volume always; OI/Liq/Exp only if we can derive)
-      function updateStatsBarForEvent(markets, maybeEventObj) {
-        // Volume: sum of market.volume if present
-        const totalVol = (markets || []).reduce((acc, m) => acc + (typeof m.volume === "number" ? m.volume : 0), 0);
-        statVol.textContent = formatInt(totalVol);
-        statsBar.style.display = "flex";
-
-        // Optional Open interest / Liquidity if they exist in payloads
-        const totalOI = (markets || []).reduce((acc, m) => acc + (typeof m.open_interest === "number" ? m.open_interest : 0), 0);
-        if (totalOI > 0) {
-          tileOI.style.display = "block";
-          statOI.textContent = formatInt(totalOI);
-        } else {
-          tileOI.style.display = "none";
-        }
-
-        const totalLiq = (markets || []).reduce((acc, m) => acc + (typeof m.liquidity === "number" ? m.liquidity : 0), 0);
-        if (totalLiq > 0) {
-          tileLiq.style.display = "block";
-          statLiq.textContent = formatMoney(totalLiq);
-        } else {
-          tileLiq.style.display = "none";
-        }
-
-        const exp = maybeEventObj?.close_time || maybeEventObj?.expiration_time || null;
-        if (typeof exp === "string" && exp.trim()) {
-          tileExp.style.display = "block";
-          statExp.textContent = exp;
-        } else {
-          tileExp.style.display = "none";
-        }
+      function prettyMarketsLine(tickers) {
+        // Convert tickers to names for the bottom meta line
+        const names = (tickers || [])
+          .map(t => tickerToName.get((t || "").toUpperCase()) || t)
+          .filter(Boolean);
+        return names.join(" , ");
       }
 
-      // ✅ Try to fetch event title/question (depends on your proxy)
+      // Try to fetch event title (question). If your worker doesn't implement /events/:ticker, it will just fallback.
       async function fetchEventTitle(eventTicker) {
         try {
           const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
           const payload = await fetchJSON(url);
           if (DEBUG) setDebug(payload);
-
           const ev = payload.event ?? payload;
           const t = ev?.title || ev?.name || ev?.question;
           if (typeof t === "string" && t.trim()) return { title: t.trim(), ev };
@@ -607,24 +600,45 @@
           throw new Error("No candlestick data returned for chart range.");
         }
 
-        // Build datasets with friendly names from tickerToName
-        const datasets = markets.map((m, idx) => {
+        // ---- Stats from candlesticks (reliable) ----
+        // Total OI = sum of latest open_interest across plotted markets
+        const totalOI = sumNumbers(markets, (m) => {
+          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
+          return lastNonNull(cs, (c) => c.open_interest);
+        });
+
+        // Total volume in the requested range (1D ~ 24h, 1W ~ 7d, etc.)
+        const totalVol = sumNumbers(markets, (m) => {
+          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
+          return sumNumbers(cs, (c) => c.volume);
+        });
+
+        setVolumeLabel();
+        statsBar.style.display = "flex";
+        statVol.textContent = formatInt(totalVol);
+        statOI.textContent = formatInt(totalOI);
+
+        // Build map so we can order datasets exactly in tickers order (top1 first)
+        const byTicker = new Map();
+        for (const m of markets) byTicker.set((m.market_ticker || "").toUpperCase(), m);
+
+        const orderedMarkets = tickers
+          .map(t => byTicker.get((t || "").toUpperCase()))
+          .filter(Boolean);
+
+        const palette = ["#f97316", "#3b82f6", "#20c997", "#a855f7", "#ef4444", "#eab308"];
+
+        const datasets = orderedMarkets.map((m, idx) => {
           const marketTicker = (m.market_ticker || "").toUpperCase();
           const label = tickerToName.get(marketTicker) || marketTicker;
-
           const data = toChartPoints(m.candlesticks);
-
-          // Keep Chart.js to pick colors automatically? Chart.js default colors are OK,
-          // but we set explicit colors for consistency with our dot.
-          // We'll assign deterministic colors by index.
-          const palette = ["#20c997", "#3b82f6", "#f97316", "#a855f7", "#ef4444", "#eab308"];
           const color = palette[idx % palette.length];
 
           return {
             label,
             data,
             borderColor: color,
-            backgroundColor: color + "22", // transparent fill
+            backgroundColor: color + "22",
             borderWidth: 2.5,
             tension: 0.35,
             pointRadius: 0,
@@ -638,9 +652,12 @@
 
         chartWrap.style.display = "block";
         chartTitle.textContent = "Chance";
-        chartMeta.textContent = `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${tickers.join(" , ")}`;
 
-        // Build Image-1 style legend
+        // Bottom meta line with NAMES not tickers ✅
+        chartMeta.textContent =
+          `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${prettyMarketsLine(tickers)}`;
+
+        // Custom legend (names + %)
         renderLegendFromDatasets(datasets);
 
         const canvas = document.getElementById("priceChart");
@@ -659,7 +676,7 @@
             parsing: false,
             animation: false,
             plugins: {
-              legend: { display: false }, // we use custom legend
+              legend: { display: false },
               tooltip: {
                 mode: "index",
                 intersect: false,
@@ -684,10 +701,7 @@
                 suggestedMin: 0,
                 suggestedMax: 100,
                 grid: { color: "rgba(255,255,255,.06)" },
-                ticks: {
-                  color: "rgba(255,255,255,.70)",
-                  callback: (v) => `${v}%`
-                },
+                ticks: { color: "rgba(255,255,255,.70)", callback: (v) => `${v}%` },
                 border: { color: "rgba(255,255,255,.12)" }
               }
             }
@@ -695,7 +709,6 @@
         });
       }
 
-      // Refresh helpers (no flicker)
       async function refreshActiveMarketSnapshot() {
         if (!activeMarketTicker) return;
         const ticker = activeMarketTicker;
@@ -731,7 +744,7 @@
         metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
         renderMarketsList(eventTicker, markets);
 
-        // Rebuild name map from titles
+        // Update name map from titles
         tickerToName.clear();
         for (const m of markets) {
           const tkr = (m.ticker || "").toUpperCase();
@@ -739,19 +752,14 @@
           tickerToName.set(tkr, nm);
         }
 
-        // Prefer top 3 by YES bid (gives nice legend like Image 1)
-        const top = [...markets]
+        // Top 3 by YES bid (Kevin first, Judy second, Rick third when bids reflect it)
+        const topTickers = [...markets]
           .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
           .slice(0, 3)
           .map(m => (m.ticker || "").toUpperCase())
           .filter(Boolean);
 
-        activeMarketTickersForChart = top;
-
-        // Update stats bar (Volume sum always)
-        // Also try to use event object if available (expiration)
-        const { ev } = await fetchEventTitle(eventTicker);
-        updateStatsBarForEvent(markets, ev);
+        activeMarketTickersForChart = topTickers;
       }
 
       async function loadMarket(tickerRaw) {
@@ -785,7 +793,7 @@
           gridEl.style.display = "grid";
           statusEl.textContent = "Loaded";
 
-          // Name mapping for legend
+          // Single market name mapping
           tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
 
           // Chart
@@ -809,7 +817,7 @@
           activeEventTicker = eventTicker;
 
           // Event question
-          const { title, ev } = await fetchEventTitle(eventTicker);
+          const { title } = await fetchEventTitle(eventTicker);
           questionEl.textContent = title || `Event: ${eventTicker}`;
           questionEl.style.display = "block";
 
@@ -834,7 +842,7 @@
             tickerToName.set(tkr, nm);
           }
 
-          // Chart top 3 by YES bid (nice like Image 1)
+          // Pick top 3 by YES bid (will order legend Kevin -> Judy -> Rick when bids match)
           const tickersToChart = [...markets]
             .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
             .slice(0, 3)
@@ -842,9 +850,6 @@
             .filter(Boolean);
 
           activeMarketTickersForChart = tickersToChart;
-
-          // Stats bar: volume sum + optional fields if present
-          updateStatsBarForEvent(markets, ev);
 
           await loadChartForMarketTickers(activeMarketTickersForChart);
           statusEl.textContent = "Loaded";
