@@ -398,7 +398,49 @@
         return x.toLocaleString();
       }
 
-      function extractCandidateNameFromTitle(title, fallbackTicker) {
+      
+      function formatUSD(x) {
+        if (typeof x !== "number" || Number.isNaN(x)) return "—";
+        return x.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+      }
+
+      // Try to read a 24h contracts field (proxy/API shapes can vary)
+      function get24hContracts(m) {
+        if (!m || typeof m !== "object") return null;
+        return (
+          (typeof m.volume_24h === "number" ? m.volume_24h : null) ??
+          (typeof m.volume24h === "number" ? m.volume24h : null) ??
+          (typeof m.volume_24h_contracts === "number" ? m.volume_24h_contracts : null) ??
+          null
+        );
+      }
+
+      // Estimate USD notional volume for last 24h: contracts * last_price($)
+      function estimate24hUSD(m) {
+        const v = get24hContracts(m);
+        const p = (typeof m?.last_price === "number" ? m.last_price : null); // cents
+        if (v === null || p === null) return null;
+        return v * (p / 100);
+      }
+
+      function computeEventTotals(markets) {
+        const totalOI = sumNumbers(markets, (m) =>
+          (typeof m?.open_interest === "number" ? m.open_interest : null)
+        );
+
+        // Prefer true USD fields if present; otherwise estimate.
+        const totalVolUSD = sumNumbers(markets, (m) => {
+          const usd =
+            (typeof m?.volume_usd_24h === "number" ? m.volume_usd_24h : null) ??
+            (typeof m?.volume_24h_usd === "number" ? m.volume_24h_usd : null) ??
+            (typeof m?.notional_volume_24h === "number" ? m.notional_volume_24h : null) ??
+            estimate24hUSD(m);
+          return usd;
+        });
+
+        return { totalOI, totalVolUSD };
+      }
+function extractCandidateNameFromTitle(title, fallbackTicker) {
         const t = (title || "").trim();
         const m = t.match(/nominate\s+(.+?)\s+as\s+/i);
         if (m && m[1]) return m[1].trim();
@@ -640,12 +682,22 @@ async function fetchEventTitle(eventTicker) {
           return sumNumbers(cs, (c) => c.volume);
         });
 
-        setVolumeLabel();
-        statsBar.style.display = "flex";
-        statVol.textContent = formatInt(totalVol);
-        statOI.textContent = formatInt(totalOI);
+        if (activeMode === "market") {
 
-        const byTicker = new Map();
+
+          setVolumeLabel();
+
+
+          statsBar.style.display = "flex";
+
+
+          statVol.textContent = formatInt(totalVol);
+
+
+          statOI.textContent = formatInt(totalOI);
+
+
+        }const byTicker = new Map();
         for (const m of markets) byTicker.set((m.market_ticker || "").toUpperCase(), m);
 
         const orderedMarkets = tickers
@@ -761,7 +813,15 @@ async function fetchEventTitle(eventTicker) {
         if (!Array.isArray(markets) || markets.length === 0) return;
 
         lastEventMarkets = markets;
-        metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+        
+
+          // Event totals across ALL markets (matches Kalshi-style headline numbers better)
+          const totals = computeEventTotals(markets);
+          statsBar.style.display = "flex";
+          volLabel.textContent = "VOLUME (USD, 24H)";
+          statVol.textContent = formatUSD(totals.totalVolUSD);
+          statOI.textContent = formatInt(totals.totalOI);
+metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
         // Still keep meta line, but you asked to not repeat ticker in headings, so list header stays "Markets"
         renderMarketsList(markets);
@@ -848,6 +908,14 @@ async function fetchEventTitle(eventTicker) {
 
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
           lastEventMarkets = markets;
+
+
+        // Refresh event totals across ALL markets
+        const totals = computeEventTotals(markets);
+        statsBar.style.display = "flex";
+        volLabel.textContent = "VOLUME (USD, 24H)";
+        statVol.textContent = formatUSD(totals.totalVolUSD);
+        statOI.textContent = formatInt(totals.totalOI);
 
           tickerToName.clear();
           for (const m of markets) {
