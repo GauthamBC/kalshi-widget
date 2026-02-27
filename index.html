@@ -52,7 +52,7 @@
       }
 
       /* ===== Sleek chart area (dark) ===== */
-      .chartWrap { margin-top: 10px; display:none; }
+      .chartWrap { margin-top:4px; display:none; }
 
       .statsBar{
         margin-top:10px;
@@ -73,7 +73,8 @@
 
       /* Custom legend like Image 1 */
       .legendRow{
-        margin-top:10px;
+        margin-top:6px;
+        margin-bottom:-8px;
         display:none;
         gap:18px;
         flex-wrap:wrap;
@@ -117,7 +118,7 @@
       .btnSmall:hover{ background: rgba(255,255,255,.10); }
 
       .chartBox{
-        margin-top: 10px;
+        margin-top:8px;
         border: 1px solid rgba(255,255,255,.10);
         border-radius: 16px;
         padding: 12px;
@@ -141,14 +142,91 @@
       .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
       .smallSelect{ padding:8px 10px; border-radius:10px; border:1px solid #ddd; background:#fff; }
 
-      table{ width:100%; border-collapse:collapse; }
+      /* Toggle button (Show all / Show top 5) */
+      .toggleBtn{
+        border:1px solid #111;
+        background:#111;
+        color:#fff;
+        font-weight:650;
+        padding:8px 12px;
+        border-radius:999px;
+      }
+      .toggleBtn:hover{ background:#000; }
+      .toggleBtn.isExpanded{
+        background:#fff;
+        color:#111;
+        border-color:#ddd;
+      }
+
+      /* Slightly tighter + more even list header spacing */
+      .listHeader{ gap:14px; margin-bottom:10px; align-items:center; }
+      .listHeader .row{ gap:10px; }
+
+      /* Slightly tighter table */
+      th, td{ padding:9px 10px; }
+
+      table{ width:100%; border-collapse:separate; border-spacing:0; border-radius:12px; overflow:hidden; }
       th, td{ text-align:left; padding:10px 10px; border-top:1px solid #eee; vertical-align:top; }
-      th{ font-size:12px; color:#666; font-weight:650; }
+      th{ font-size:12px; font-weight:700; }
+      thead th{
+        background:#111;
+        color:#fff;
+        border-top:none;
+        border-bottom:1px solid #222;
+      }
+      thead th:first-child{ border-top-left-radius:12px; }
+      thead th:last-child{ border-top-right-radius:12px; }
+
       td{ font-size:13px; }
       .tickerCell{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#333; }
       .clickable{ cursor:pointer; }
       .clickable:hover{ background:#fafafa; }
       .selectedRow{ background:#eef6ff !important; }
+    
+
+      /* ===== Hover tooltips for stat tiles ===== */
+      .hasTip { position: relative; }
+      .hasTip::after,
+      .hasTip::before { opacity: 0; pointer-events: none; transition: opacity .12s ease; }
+      .hasTip:hover::after,
+      .hasTip:hover::before { opacity: 1; }
+
+      .hasTip::after{
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 12px;
+        top: 100%;
+        margin-top: 10px;
+        max-width: 360px;
+        background: rgba(15,17,21,.96);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.35;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 10px 26px rgba(0,0,0,.25);
+        z-index: 50;
+        white-space: normal;
+      }
+      .hasTip::before{
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 100%;
+        margin-top: 4px;
+        width: 10px; height: 10px;
+        background: rgba(15,17,21,.96);
+        border-left: 1px solid rgba(255,255,255,.14);
+        border-top: 1px solid rgba(255,255,255,.14);
+        transform: rotate(45deg);
+        z-index: 51;
+      }
+
+      /* Make tooltip positioning behave nicely inside the dark tiles */
+      .statTile.hasTip::after { left: 12px; }
+      .statTile.hasTip::before { left: 26px; }
+
     </style>
   </head>
 
@@ -197,18 +275,18 @@
 
       <!-- Stats bar -->
       <div class="row statsBar" id="statsBar">
-        <div class="statTile" id="tileVol">
+        <div class="statTile hasTip" id="tileVol" data-tooltip="Volume (Total): All contracts traded since this market opened (lifetime activity).">
           <div class="statLabel" id="volLabel">VOLUME (TOTAL)</div>
           <div class="statValue" id="statVol">—</div>
         </div>
 
         <!-- ✅ NEW: Volume 24h tile (between total volume + open interest) -->
-        <div class="statTile" id="tileVol24">
+        <div class="statTile hasTip" id="tileVol24" data-tooltip="Volume (24h): Contracts traded in the last 24 hours (recent activity).">
           <div class="statLabel" id="vol24Label">VOLUME (24H)</div>
           <div class="statValue" id="statVol24">—</div>
         </div>
 
-        <div class="statTile" id="tileOI">
+        <div class="statTile hasTip" id="tileOI" data-tooltip="Open Interest: Contracts currently being held right now (active positions still open). Measured in contracts (not dollars).">
           <div class="statLabel">OPEN INTEREST</div>
           <div class="statValue" id="statOI">—</div>
         </div>
@@ -255,6 +333,7 @@
           <div class="listTitle" id="listTitle">Markets</div>
           <div class="row">
             <span class="tag" id="countTag">0 markets</span>
+            <button class="smallSelect toggleBtn" id="toggleMarketsBtn" type="button" title="Expand/collapse the markets list" style="cursor:pointer;">Show all</button>
             <select class="smallSelect" id="sortSelect" title="Sort markets">
               <option value="yes_desc">Sort: YES bid (high → low)</option>
               <option value="yes_asc">Sort: YES bid (low → high)</option>
@@ -309,6 +388,7 @@
       const countTag = el("countTag");
       const marketsTbody = el("marketsTbody");
       const sortSelect = el("sortSelect");
+      const toggleMarketsBtn = el("toggleMarketsBtn");
 
       const chartWrap = el("chartWrap");
       const chartMeta = el("chartMeta");
@@ -333,6 +413,8 @@
       const AUTO_REFRESH_MS = AUTO_REFRESH_MINUTES * 60 * 1000;
 
       let lastEventMarkets = [];
+      const MAX_MARKETS_COLLAPSED = 5;
+      let marketsExpanded = false;
       let activeRange = "1d";
       let activeEventTicker = null;
       let activeEventSection = null;
@@ -343,7 +425,10 @@
 
       // EVENT chart behavior
       let eventChartMode = "top2"; // "top2" | "selected" | "all"
-      let selectedEventMarketTicker = null; // when user clicks a row in event mode
+      let selectedEventMarketTicker = null;
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; } // when user clicks a row in event mode
 
       const tickerToName = new Map();
 
@@ -397,6 +482,9 @@
 
         // reset event chart selection but keep last chosen chart mode (so UX feels consistent)
         selectedEventMarketTicker = null;
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
 
         tileLiq.style.display = "none";
         tileExp.style.display = "none";
@@ -461,9 +549,20 @@
         countTag.textContent = `${markets.length} markets`;
 
         const sorted = sortMarkets(markets, sortSelect.value);
+
+        const display = marketsExpanded ? sorted : sorted.slice(0, MAX_MARKETS_COLLAPSED);
+        if (toggleMarketsBtn) {
+          toggleMarketsBtn.style.display = (sorted.length > MAX_MARKETS_COLLAPSED) ? 'inline-block' : 'none';
+          toggleMarketsBtn.textContent = marketsExpanded ? `Show top ${MAX_MARKETS_COLLAPSED}` : `Show all`;
+          toggleMarketsBtn.classList.toggle('isExpanded', marketsExpanded);
+        }
+        countTag.textContent = marketsExpanded
+          ? `${sorted.length} markets`
+          : `Top ${Math.min(MAX_MARKETS_COLLAPSED, sorted.length)} of ${sorted.length}`;
+
         marketsTbody.innerHTML = "";
 
-        for (const mk of sorted) {
+        for (const mk of display) {
           const tkr = (mk.ticker || "").toUpperCase();
 
           const tr = document.createElement("tr");
@@ -837,6 +936,8 @@
 
         lastEventMarkets = markets;
 
+        // keep current marketsExpanded state
+
         // ✅ Totals like Kalshi headline (+ 24h)
         const totals = computeEventTotals(markets);
         statsBar.style.display = "flex";
@@ -862,6 +963,9 @@
         if (selectedEventMarketTicker) {
           const stillExists = markets.some(m => (m.ticker || "").toUpperCase() === selectedEventMarketTicker);
           if (!stillExists) selectedEventMarketTicker = null;
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
         }
 
         renderMarketsList(markets);
@@ -941,6 +1045,8 @@
 
           lastEventMarkets = markets;
 
+        // keep current marketsExpanded state
+
           // ✅ totals like Kalshi headline (+ 24h)
           const totals = computeEventTotals(markets);
           statsBar.style.display = "flex";
@@ -965,6 +1071,9 @@
           // default view = top2 like Kalshi
           eventChartMode = "top2";
           selectedEventMarketTicker = null;
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
 
           renderMarketsList(markets);
           await loadEventChart();
@@ -1015,6 +1124,14 @@
         if (!lastEventMarkets.length) return;
         renderMarketsList(lastEventMarkets);
       });
+
+      if (toggleMarketsBtn) {
+        toggleMarketsBtn.addEventListener("click", () => {
+          if (!lastEventMarkets.length) return;
+          marketsExpanded = !marketsExpanded;
+          renderMarketsList(lastEventMarkets);
+        });
+      }
 
       // range buttons
       document.querySelectorAll("[data-range]").forEach((btn) => {
