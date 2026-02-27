@@ -8,7 +8,7 @@
     <!-- Chart.js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-    <!-- ✅ REQUIRED for `scales.x.type = "time"` in Chart.js v4 -->
+    <!-- REQUIRED for `scales.x.type = "time"` in Chart.js v4 -->
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
@@ -148,6 +148,7 @@
       .tickerCell{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#333; }
       .clickable{ cursor:pointer; }
       .clickable:hover{ background:#fafafa; }
+      .selectedRow{ background:#eef6ff !important; }
     </style>
   </head>
 
@@ -158,7 +159,6 @@
         <div class="pill" id="status">Idle</div>
       </div>
 
-      <!-- ✅ Always keep heading generic (no "Event: ...") -->
       <h1 id="title">Enter a market ticker or event ticker</h1>
 
       <div class="row" style="margin-top:10px;">
@@ -192,10 +192,10 @@
 
       <div class="muted" id="meta"></div>
 
-      <!-- ✅ Event question above the chart (this is where the real title should live) -->
+      <!-- Event question above the chart -->
       <div class="question" id="question"></div>
 
-      <!-- ✅ Stats bar -->
+      <!-- Stats bar -->
       <div class="row statsBar" id="statsBar">
         <div class="statTile" id="tileVol">
           <div class="statLabel" id="volLabel">VOLUME</div>
@@ -215,7 +215,7 @@
         </div>
       </div>
 
-      <!-- ✅ Name legend -->
+      <!-- Name legend -->
       <div class="legendRow" id="legendRow"></div>
 
       <!-- Chart -->
@@ -228,6 +228,11 @@
             <button class="btnSmall" data-range="1m">1M</button>
             <button class="btnSmall" data-range="all">ALL</button>
           </div>
+          <div class="btnGroup">
+            <button class="btnSmall" data-chartmode="top2">Top 2</button>
+            <button class="btnSmall" data-chartmode="selected">Selected</button>
+            <button class="btnSmall" data-chartmode="all">All</button>
+          </div>
         </div>
 
         <div class="chartBox">
@@ -239,7 +244,6 @@
       <!-- Event markets list -->
       <div class="listWrap" id="listWrap">
         <div class="listHeader">
-          <!-- ✅ Always show just the ticker, not "Event markets: ..." -->
           <div class="listTitle" id="listTitle">Markets</div>
           <div class="row">
             <span class="tag" id="countTag">0 markets</span>
@@ -266,7 +270,7 @@
         </table>
 
         <div class="muted" style="margin-top:8px;">
-          Tip: click any row to load that specific market in the widget above.
+          Tip: click any row to update the chart to that market.
         </div>
       </div>
 
@@ -318,12 +322,15 @@
       let lastEventMarkets = [];
       let activeRange = "1d";
       let activeEventTicker = null;
-      let activeEventSection = null; // e.g., "Politics · Trump"
-      let activeMarketTickersForChart = null;
-      let chart = null;
+      let activeEventSection = null;
 
+      let chart = null;
       let activeMode = null; // "market" | "event"
       let activeMarketTicker = null;
+
+      // EVENT chart behavior
+      let eventChartMode = "top2"; // "top2" | "selected" | "all"
+      let selectedEventMarketTicker = null; // when user clicks a row in event mode
 
       const tickerToName = new Map();
 
@@ -357,7 +364,6 @@
         marketsTbody.innerHTML = "";
         lastEventMarkets = [];
 
-        // ✅ Keep title generic always
         titleEl.textContent = "Enter a market ticker or event ticker";
 
         questionEl.style.display = "none";
@@ -372,10 +378,12 @@
         chartMeta.textContent = "";
         activeEventTicker = null;
         activeEventSection = null;
-        activeMarketTickersForChart = null;
 
         activeMode = null;
         activeMarketTicker = null;
+
+        // reset event chart selection but keep last chosen chart mode (so UX feels consistent)
+        selectedEventMarketTicker = null;
 
         tileLiq.style.display = "none";
         tileExp.style.display = "none";
@@ -398,53 +406,15 @@
         return x.toLocaleString();
       }
 
-      
       function formatUSD(x) {
         if (typeof x !== "number" || Number.isNaN(x)) return "—";
         return x.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
       }
 
-      // Try to read a 24h contracts field (proxy/API shapes can vary)
-      function get24hContracts(m) {
-        if (!m || typeof m !== "object") return null;
-        return (
-          (typeof m.volume_24h === "number" ? m.volume_24h : null) ??
-          (typeof m.volume24h === "number" ? m.volume24h : null) ??
-          (typeof m.volume_24h_contracts === "number" ? m.volume_24h_contracts : null) ??
-          null
-        );
-      }
-
-      // Estimate USD notional volume for last 24h: contracts * last_price($)
-      function estimate24hUSD(m) {
-        const v = get24hContracts(m);
-        const p = (typeof m?.last_price === "number" ? m.last_price : null); // cents
-        if (v === null || p === null) return null;
-        return v * (p / 100);
-      }
-
-      function computeEventTotals(markets) {
-        const totalOI = sumNumbers(markets, (m) =>
-          (typeof m?.open_interest === "number" ? m.open_interest : null)
-        );
-
-        // Prefer true USD fields if present; otherwise estimate.
-        const totalVolUSD = sumNumbers(markets, (m) => {
-          const usd =
-            (typeof m?.volume_usd_24h === "number" ? m.volume_usd_24h : null) ??
-            (typeof m?.volume_24h_usd === "number" ? m.volume_24h_usd : null) ??
-            (typeof m?.notional_volume_24h === "number" ? m.notional_volume_24h : null) ??
-            estimate24hUSD(m);
-          return usd;
-        });
-
-        return { totalOI, totalVolUSD };
-      }
-function extractCandidateNameFromTitle(title, fallbackTicker) {
+      function extractCandidateNameFromTitle(title, fallbackTicker) {
         const t = (title || "").trim();
         const m = t.match(/nominate\s+(.+?)\s+as\s+/i);
         if (m && m[1]) return m[1].trim();
-
         const parts = (fallbackTicker || "").split("-");
         return parts[parts.length - 1] || fallbackTicker || "—";
       }
@@ -467,37 +437,56 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
 
       function renderMarketsList(markets) {
         listWrap.style.display = "block";
-        listTitle.textContent = (activeEventSection || "Markets"); // ✅ show event section when available
+        listTitle.textContent = (activeEventSection || "Markets");
         countTag.textContent = `${markets.length} markets`;
 
         const sorted = sortMarkets(markets, sortSelect.value);
         marketsTbody.innerHTML = "";
 
         for (const mk of sorted) {
+          const tkr = (mk.ticker || "").toUpperCase();
+
           const tr = document.createElement("tr");
           tr.className = "clickable";
-          tr.addEventListener("click", () => {
-            const newUrl = new URL(location.href);
-            newUrl.searchParams.delete("event");
-            newUrl.searchParams.set("ticker", mk.ticker);
-            history.replaceState({}, "", newUrl);
+          tr.dataset.ticker = tkr;
 
-            inputBox.value = (mk.ticker || "").toUpperCase();
-            loadMarket(inputBox.value);
+          // IMPORTANT: in EVENT mode, clicking row should update chart (not switch to single-market mode)
+          tr.addEventListener("click", async () => {
+            if (activeMode !== "event") return;
+
+            selectedEventMarketTicker = tkr;
+            eventChartMode = "selected"; // clicking a row implies "show selected"
+
+            highlightSelectedRow();
+            try {
+              await loadEventChart();
+            } catch (e) {
+              errEl.textContent = `Chart error:\n${e.message}`;
+            }
           });
 
-          const yes = `${fmtCentsOrNull(mk.yes_bid)} / ${fmtCentsOrNull(mk.yes_ask)}`;
-          const no  = `${fmtCentsOrNull(mk.no_bid)} / ${fmtCentsOrNull(mk.no_ask)}`;
+          const yes = `${fmtCentsOrNull(n(mk.yes_bid))} / ${fmtCentsOrNull(n(mk.yes_ask))}`;
+          const no  = `${fmtCentsOrNull(n(mk.no_bid))} / ${fmtCentsOrNull(n(mk.no_ask))}`;
 
           tr.innerHTML = `
             <td>${mk.title || "—"}</td>
             <td>${yes}</td>
             <td>${no}</td>
-            <td>${mk.volume ?? "—"}</td>
+            <td>${(mk.volume ?? "—").toString()}</td>
             <td class="tickerCell">${mk.ticker || "—"}</td>
           `;
           marketsTbody.appendChild(tr);
         }
+
+        highlightSelectedRow();
+      }
+
+      function highlightSelectedRow() {
+        const rows = marketsTbody.querySelectorAll("tr");
+        rows.forEach(r => r.classList.remove("selectedRow"));
+        if (!selectedEventMarketTicker) return;
+        const hit = marketsTbody.querySelector(`tr[data-ticker="${CSS.escape(selectedEventMarketTicker)}"]`);
+        if (hit) hit.classList.add("selectedRow");
       }
 
       async function fetchJSON(url) {
@@ -534,14 +523,6 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
         return pts;
       }
 
-      function lastNonNull(arr, getter) {
-        for (let i = arr.length - 1; i >= 0; i--) {
-          const v = getter(arr[i]);
-          if (v !== null && v !== undefined) return v;
-        }
-        return null;
-      }
-
       function sumNumbers(arr, getter) {
         let s = 0;
         for (const x of arr) {
@@ -549,13 +530,6 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
           if (typeof v === "number" && !Number.isNaN(v)) s += v;
         }
         return s;
-      }
-
-      function setVolumeLabel() {
-        volLabel.textContent =
-          activeRange === "1d" ? "VOLUME (24H)" :
-          activeRange === "1w" ? "VOLUME (7D)" :
-          activeRange === "1m" ? "VOLUME (30D)" : "VOLUME (RANGE)";
       }
 
       function renderLegendFromDatasets(datasets) {
@@ -600,7 +574,6 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
         return names.join(" , ");
       }
 
-      
       function pickFirstString(obj, keys) {
         for (const k of keys) {
           const v = obj?.[k];
@@ -610,7 +583,6 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
       }
 
       function buildEventSection(ev) {
-        // Try common shapes Kalshi APIs use (varies by endpoint/version)
         const category =
           pickFirstString(ev, ["category_title", "category", "category_name"]) ||
           pickFirstString(ev?.category, ["title", "name"]) ||
@@ -640,7 +612,8 @@ function extractCandidateNameFromTitle(title, fallbackTicker) {
         } catch (_) {}
         return null;
       }
-async function fetchEventTitle(eventTicker) {
+
+      async function fetchEventTitle(eventTicker) {
         try {
           const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
           const payload = await fetchJSON(url);
@@ -650,6 +623,42 @@ async function fetchEventTitle(eventTicker) {
           if (typeof t === "string" && t.trim()) return t.trim();
         } catch (_) {}
         return null;
+      }
+
+      // --- EVENT totals like Kalshi headline: sum of market.volume and sum of market.open_interest
+      function computeEventTotals(markets) {
+        const totalOI = sumNumbers(markets, (m) =>
+          (typeof m?.open_interest === "number" ? m.open_interest : null)
+        );
+        const totalVolContracts = sumNumbers(markets, (m) =>
+          (typeof m?.volume === "number" ? m.volume : null)
+        );
+        return { totalOI, totalVolContracts };
+      }
+
+      function pickEventTickersForChart() {
+        if (!Array.isArray(lastEventMarkets) || lastEventMarkets.length === 0) return [];
+
+        if (eventChartMode === "selected") {
+          if (selectedEventMarketTicker) return [selectedEventMarketTicker];
+          // fallback if nothing selected yet
+          eventChartMode = "top2";
+        }
+
+        if (eventChartMode === "all") {
+          // WARNING: can be heavy, but user asked for Kalshi-like behavior; allow it
+          return lastEventMarkets
+            .map(m => (m.ticker || "").toUpperCase())
+            .filter(Boolean)
+            .slice(0, 25); // safety cap so Chart.js doesn’t melt
+        }
+
+        // default: top2 by yes_bid (Kalshi screenshot usually shows 2 lines)
+        return [...lastEventMarkets]
+          .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+          .slice(0, 2)
+          .map(m => (m.ticker || "").toUpperCase())
+          .filter(Boolean);
       }
 
       async function loadChartForMarketTickers(tickers) {
@@ -672,39 +681,14 @@ async function fetchEventTitle(eventTicker) {
           throw new Error("No candlestick data returned for chart range.");
         }
 
-        const totalOI = sumNumbers(markets, (m) => {
-          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
-          return lastNonNull(cs, (c) => c.open_interest);
-        });
-
-        const totalVol = sumNumbers(markets, (m) => {
-          const cs = Array.isArray(m.candlesticks) ? m.candlesticks : [];
-          return sumNumbers(cs, (c) => c.volume);
-        });
-
-        if (activeMode === "market") {
-
-
-          setVolumeLabel();
-
-
-          statsBar.style.display = "flex";
-
-
-          statVol.textContent = formatInt(totalVol);
-
-
-          statOI.textContent = formatInt(totalOI);
-
-
-        }const byTicker = new Map();
+        const byTicker = new Map();
         for (const m of markets) byTicker.set((m.market_ticker || "").toUpperCase(), m);
 
         const orderedMarkets = tickers
           .map(t => byTicker.get((t || "").toUpperCase()))
           .filter(Boolean);
 
-        const palette = ["#f97316", "#3b82f6", "#20c997", "#a855f7", "#ef4444", "#eab308"];
+        const palette = ["#20c997", "#3b82f6", "#f97316", "#a855f7", "#ef4444", "#eab308"];
 
         const datasets = orderedMarkets.map((m, idx) => {
           const marketTicker = (m.market_ticker || "").toUpperCase();
@@ -725,7 +709,6 @@ async function fetchEventTitle(eventTicker) {
         }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
 
         chartWrap.style.display = "block";
-
         chartMeta.textContent =
           `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${prettyMarketsLine(tickers)}`;
 
@@ -780,6 +763,12 @@ async function fetchEventTitle(eventTicker) {
         });
       }
 
+      async function loadEventChart() {
+        const tickers = pickEventTickersForChart();
+        if (!tickers.length) return;
+        await loadChartForMarketTickers(tickers);
+      }
+
       async function refreshActiveMarketSnapshot() {
         if (!activeMarketTicker) return;
         const ticker = activeMarketTicker;
@@ -797,6 +786,12 @@ async function fetchEventTitle(eventTicker) {
         el("volume").textContent = (data.volume ?? "—").toString();
         metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
         gridEl.style.display = "grid";
+
+        // For single-market mode, stats bar can show contract volume as $ notional (optional)
+        statsBar.style.display = "flex";
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+        statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
       }
 
       async function refreshActiveEventList() {
@@ -813,18 +808,15 @@ async function fetchEventTitle(eventTicker) {
         if (!Array.isArray(markets) || markets.length === 0) return;
 
         lastEventMarkets = markets;
-        
 
-          // Event totals across ALL markets (matches Kalshi-style headline numbers better)
-          const totals = computeEventTotals(markets);
-          statsBar.style.display = "flex";
-          volLabel.textContent = "VOLUME (USD, 24H)";
-          statVol.textContent = formatUSD(totals.totalVolUSD);
-          statOI.textContent = formatInt(totals.totalOI);
-metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+        // Totals like Kalshi headline
+        const totals = computeEventTotals(markets);
+        statsBar.style.display = "flex";
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = formatUSD(totals.totalVolContracts);
+        statOI.textContent = formatInt(totals.totalOI);
 
-        // Still keep meta line, but you asked to not repeat ticker in headings, so list header stays "Markets"
-        renderMarketsList(markets);
+        metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
         tickerToName.clear();
         for (const m of markets) {
@@ -833,13 +825,13 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
           tickerToName.set(tkr, nm);
         }
 
-        const topTickers = [...markets]
-          .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
-          .slice(0, 3)
-          .map(m => (m.ticker || "").toUpperCase())
-          .filter(Boolean);
+        // If selected ticker disappeared, fall back to top2
+        if (selectedEventMarketTicker) {
+          const stillExists = markets.some(m => (m.ticker || "").toUpperCase() === selectedEventMarketTicker);
+          if (!stillExists) selectedEventMarketTicker = null;
+        }
 
-        activeMarketTickersForChart = topTickers;
+        renderMarketsList(markets);
       }
 
       async function loadMarket(tickerRaw) {
@@ -861,7 +853,6 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
           activeMode = "market";
           activeMarketTicker = (data.ticker || ticker).toUpperCase();
 
-          // For single market we can show the market title in meta, but headings remain generic
           metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
 
           el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
@@ -874,8 +865,13 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
 
           tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
 
-          activeMarketTickersForChart = [activeMarketTicker];
-          await loadChartForMarketTickers(activeMarketTickersForChart);
+          // stats
+          statsBar.style.display = "flex";
+          volLabel.textContent = "VOLUME (TOTAL)";
+          statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+          statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
+
+          await loadChartForMarketTickers([activeMarketTicker]);
 
         } catch (e) {
           statusEl.textContent = "Error";
@@ -886,7 +882,7 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
       async function loadEvent(eventTickerRaw) {
         const eventTicker = (eventTickerRaw || "").trim().toUpperCase();
         clearUI();
-        statusEl.textContent = "Loading event markets…";
+        statusEl.textContent = "Loading event…";
 
         try {
           activeMode = "event";
@@ -906,16 +902,16 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
             throw new Error("No markets found for that event ticker (or event ticker is wrong).");
           }
 
-          metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
           lastEventMarkets = markets;
 
+          // totals like Kalshi headline
+          const totals = computeEventTotals(markets);
+          statsBar.style.display = "flex";
+          volLabel.textContent = "VOLUME (TOTAL)";
+          statVol.textContent = formatUSD(totals.totalVolContracts);
+          statOI.textContent = formatInt(totals.totalOI);
 
-        // Refresh event totals across ALL markets
-        const totals = computeEventTotals(markets);
-        statsBar.style.display = "flex";
-        volLabel.textContent = "VOLUME (USD, 24H)";
-        statVol.textContent = formatUSD(totals.totalVolUSD);
-        statOI.textContent = formatInt(totals.totalOI);
+          metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
           tickerToName.clear();
           for (const m of markets) {
@@ -924,28 +920,23 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
             tickerToName.set(tkr, nm);
           }
 
-          // Top 3 by YES bid
-          const tickersToChart = [...markets]
-            .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
-            .slice(0, 3)
-            .map(m => (m.ticker || "").toUpperCase())
-            .filter(Boolean);
-
-          activeMarketTickersForChart = tickersToChart;
+          // default view = top2 like Kalshi
+          eventChartMode = "top2";
+          selectedEventMarketTicker = null;
 
           renderMarketsList(markets);
-          await loadChartForMarketTickers(activeMarketTickersForChart);
+          await loadEventChart();
 
           statusEl.textContent = "Loaded";
         } catch (e) {
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXFEDCHAIRNOM-29 (all caps).`;
+          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXPGATOUR-COCITPB26 (all caps).`;
         }
       }
 
       function isProbablyEventTicker(s) {
         const hyphens = (s.match(/-/g) || []).length;
-        return hyphens === 1;
+        return hyphens === 1; // event tickers like KXPGATOUR-COCITPB26
       }
 
       async function loadFromInput(raw) {
@@ -983,18 +974,41 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
         renderMarketsList(lastEventMarkets);
       });
 
+      // range buttons
       document.querySelectorAll("[data-range]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           activeRange = btn.getAttribute("data-range");
-          if (!activeMarketTickersForChart) return;
           try {
-            await loadChartForMarketTickers(activeMarketTickersForChart);
+            if (activeMode === "event") await loadEventChart();
+            if (activeMode === "market" && activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
           } catch (e) {
             errEl.textContent = `Chart error:\n${e.message}`;
           }
         });
       });
 
+      // chart-mode buttons (top2/selected/all)
+      document.querySelectorAll("[data-chartmode]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (activeMode !== "event") return;
+          eventChartMode = btn.getAttribute("data-chartmode");
+
+          // if user clicks "selected" with nothing selected, pick first item
+          if (eventChartMode === "selected" && !selectedEventMarketTicker) {
+            const first = lastEventMarkets?.[0]?.ticker;
+            selectedEventMarketTicker = first ? first.toUpperCase() : null;
+          }
+
+          highlightSelectedRow();
+          try {
+            await loadEventChart();
+          } catch (e) {
+            errEl.textContent = `Chart error:\n${e.message}`;
+          }
+        });
+      });
+
+      // URL boot
       const urlTicker = (params.get("ticker") || "").trim();
       const urlEvent = (params.get("event") || "").trim();
 
@@ -1023,20 +1037,21 @@ metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${even
         if (e.key === "Enter") { e.preventDefault(); loadFromInput(inputBox.value); }
       });
 
+      // auto-refresh (preserve selected market in event mode)
       setInterval(async () => {
         if (document.hidden) return;
-        if (!activeMarketTickersForChart) return;
 
         try {
           statusEl.textContent = "Refreshing…";
 
           if (activeMode === "market") {
             await refreshActiveMarketSnapshot();
+            if (activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
           } else if (activeMode === "event") {
             await refreshActiveEventList();
+            await loadEventChart();
           }
 
-          await loadChartForMarketTickers(activeMarketTickersForChart);
           statusEl.textContent = "Loaded";
         } catch (_) {
           statusEl.textContent = "Loaded";
