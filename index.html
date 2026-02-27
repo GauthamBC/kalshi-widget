@@ -63,8 +63,17 @@
       .clickable:hover { background: #fafafa; }
       .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
 
+      /* Event question above chart */
+      .question {
+        margin-top: 14px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111;
+        display: none;
+      }
+
       /* Chart section */
-      .chartWrap { margin-top: 14px; display: none; }
+      .chartWrap { margin-top: 10px; display: none; }
       .chartHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap: wrap; }
       .chartTitle { font-weight: 650; }
       .chartBox {
@@ -77,6 +86,7 @@
       canvas { width: 100% !important; height: 320px !important; }
     </style>
   </head>
+
   <body>
     <div class="card">
       <div class="row" style="justify-content:space-between;">
@@ -88,7 +98,7 @@
 
       <div class="row" style="margin-top:10px;">
         <div style="flex:1; min-width: 260px;">
-          <input id="inputBox" placeholder="Market ticker (e.g. KXNBA3PT-...-1) OR Event ticker (e.g. KXNBAGAME-...)" />
+          <input id="inputBox" placeholder="Market ticker (e.g. KXNBA3PT-...-1) OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
         </div>
         <div class="row">
           <button id="loadBtn">Load</button>
@@ -116,6 +126,9 @@
       </div>
 
       <div class="muted" id="meta"></div>
+
+      <!-- ✅ Event question above the chart -->
+      <div class="question" id="question"></div>
 
       <!-- Chart -->
       <div class="chartWrap" id="chartWrap">
@@ -187,6 +200,7 @@
       const metaEl = el("meta");
       const errEl = el("error");
       const debugBox = el("debugBox");
+      const questionEl = el("question");
 
       const listWrap = el("listWrap");
       const listTitle = el("listTitle");
@@ -197,6 +211,8 @@
       const chartWrap = el("chartWrap");
       const chartTitle = el("chartTitle");
       const chartMeta = el("chartMeta");
+
+      const inputBox = el("inputBox");
 
       const params = new URLSearchParams(location.search);
       const DEBUG = params.get("debug") === "1";
@@ -209,9 +225,9 @@
       let activeRange = "1d";
       let activeEventTicker = null;
       let activeMarketTickersForChart = null; // array of tickers to plot
-      let chart = null; // still keep a handle, but we will HARD-destroy via Chart.getChart()
+      let chart = null;
 
-      // ✅ Track which mode we're in so auto-refresh also updates the top snapshot
+      // ✅ Track which mode we're in so auto-refresh also updates the list/snapshot
       let activeMode = null; // "market" | "event"
       let activeMarketTicker = null; // current single market ticker (when activeMode === "market")
 
@@ -224,21 +240,15 @@
       function hardDestroyChart() {
         const canvas = document.getElementById("priceChart");
         if (!canvas || typeof Chart === "undefined" || !Chart.getChart) {
-          // Fallback to old handle if Chart.getChart isn't available
           if (chart) { try { chart.destroy(); } catch (_) {} chart = null; }
           return;
         }
         const existing = Chart.getChart(canvas);
-        if (existing) {
-          try { existing.destroy(); } catch (_) {}
-        }
+        if (existing) { try { existing.destroy(); } catch (_) {} }
         chart = null;
 
-        // Extra safety: clear the canvas
         const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
 
       function clearUI() {
@@ -251,16 +261,17 @@
         marketsTbody.innerHTML = "";
         lastEventMarkets = [];
 
+        questionEl.style.display = "none";
+        questionEl.textContent = "";
+
         chartWrap.style.display = "none";
         chartMeta.textContent = "";
         activeEventTicker = null;
         activeMarketTickersForChart = null;
 
-        // ✅ also clear "current mode" tracking
         activeMode = null;
         activeMarketTicker = null;
 
-        // ✅ IMPORTANT: destroy any chart bound to the canvas
         hardDestroyChart();
       }
 
@@ -307,8 +318,8 @@
             newUrl.searchParams.set("ticker", mk.ticker);
             history.replaceState({}, "", newUrl);
 
-            el("inputBox").value = mk.ticker;
-            loadMarket(mk.ticker);
+            inputBox.value = (mk.ticker || "").toUpperCase();
+            loadMarket(inputBox.value);
           });
 
           const yes = `${fmtCentsOrNull(mk.yes_bid)} / ${fmtCentsOrNull(mk.yes_ask)}`;
@@ -341,21 +352,18 @@
 
       function rangeToWindow(range) {
         const nowSec = Math.floor(Date.now() / 1000);
-        if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };   // 1h sticks
-        if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 }; // 1h sticks
-        if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 }; // 1d sticks
-        // ALL: last 90 days daily (keeps payload reasonable)
+        if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };
+        if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 };
+        if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 };
         return { start: nowSec - 90*86400, end: nowSec, interval: 1440 };
       }
 
       function buildSeriesLabelFromTicker(ticker) {
-        // last token after final "-" is usually side (LAL/PHX) for game markets
         const parts = (ticker || "").split("-");
         return parts[parts.length - 1] || ticker;
       }
 
       function toChartPoints(candles) {
-        // We use price.close (cents) as "chance" percent (roughly Kalshi UI)
         const pts = [];
         for (const c of (candles || [])) {
           const ts = c.end_period_ts;
@@ -370,12 +378,9 @@
       async function loadChartForMarketTickers(tickers) {
         if (!Array.isArray(tickers) || tickers.length === 0) return;
 
-        // ✅ ALWAYS destroy any previous chart BEFORE fetching/rendering
         hardDestroyChart();
-
         const { start, end, interval } = rangeToWindow(activeRange);
 
-        // Batch candlesticks endpoint: /markets/candlesticks
         const url =
           `${BASE}/markets/candlesticks` +
           `?market_tickers=${encodeURIComponent(tickers.join(","))}` +
@@ -393,8 +398,6 @@
         const datasets = markets.map((m) => {
           const label = buildSeriesLabelFromTicker(m.market_ticker);
           const data = toChartPoints(m.candlesticks);
-
-          // Keep empty series out of the chart (prevents weird rendering)
           return { label, data, tension: 0.25, pointRadius: 0 };
         }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
 
@@ -406,7 +409,6 @@
         chartTitle.textContent = "Chance";
         chartMeta.textContent = `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${tickers.join(" , ")}`;
 
-        // ✅ HARD destroy any chart still bound to the canvas (belt & braces)
         const canvas = document.getElementById("priceChart");
         const existing = Chart.getChart ? Chart.getChart(canvas) : null;
         if (existing) existing.destroy();
@@ -422,10 +424,7 @@
             maintainAspectRatio: false,
             parsing: false,
             scales: {
-              x: {
-                type: "time",
-                time: { tooltipFormat: "MMM d, HH:mm" }
-              },
+              x: { type: "time", time: { tooltipFormat: "MMM d, HH:mm" } },
               y: {
                 suggestedMin: 0,
                 suggestedMax: 100,
@@ -441,6 +440,20 @@
         });
       }
 
+      // ✅ Try to fetch the event title (question). If proxy doesn’t support it, fallback gracefully.
+      async function fetchEventTitle(eventTicker) {
+        try {
+          const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
+          const payload = await fetchJSON(url);
+          if (DEBUG) setDebug(payload);
+
+          const ev = payload.event ?? payload;
+          const t = ev?.title || ev?.name || ev?.question;
+          if (typeof t === "string" && t.trim()) return t.trim();
+        } catch (_) {}
+        return null;
+      }
+
       // ✅ Refresh helpers (no clearUI, so it doesn't flicker)
       async function refreshActiveMarketSnapshot() {
         if (!activeMarketTicker) return;
@@ -453,7 +466,6 @@
         const data = payload.market ?? payload;
         if (!data || typeof data !== "object") return;
 
-        // Only update fields that exist on the page (avoid hard resets)
         titleEl.textContent = data.title || ticker;
         el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
         el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
@@ -478,7 +490,6 @@
         metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
         renderMarketsList(eventTicker, markets);
 
-        // Keep chart aligned with top 2 by volume
         const topByVol = [...markets].sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
         const tickersToChart = (markets.length >= 2 ? topByVol.slice(0, 2) : topByVol.slice(0, 1))
           .map(m => m.ticker)
@@ -487,7 +498,8 @@
         activeMarketTickersForChart = tickersToChart;
       }
 
-      async function loadMarket(ticker) {
+      async function loadMarket(tickerRaw) {
+        const ticker = (tickerRaw || "").trim().toUpperCase();
         clearUI();
         statusEl.textContent = "Loading market…";
 
@@ -502,9 +514,8 @@
             throw new Error("Unexpected response shape from proxy");
           }
 
-          // ✅ set mode
           activeMode = "market";
-          activeMarketTicker = data.ticker || ticker;
+          activeMarketTicker = (data.ticker || ticker).toUpperCase();
 
           titleEl.textContent = data.title || ticker;
 
@@ -518,8 +529,7 @@
           gridEl.style.display = "grid";
           statusEl.textContent = "Loaded";
 
-          // Chart for single market (one line)
-          activeMarketTickersForChart = [data.ticker || ticker];
+          activeMarketTickersForChart = [(data.ticker || ticker).toUpperCase()];
           await loadChartForMarketTickers(activeMarketTickersForChart);
 
         } catch (e) {
@@ -528,13 +538,27 @@
         }
       }
 
-      async function loadEvent(eventTicker) {
+      async function loadEvent(eventTickerRaw) {
+        const eventTicker = (eventTickerRaw || "").trim().toUpperCase();
         clearUI();
         statusEl.textContent = "Loading event markets…";
-        titleEl.textContent = "Loading event…";
+        titleEl.textContent = `Event: ${eventTicker}`;
 
         try {
-          // List markets for event: /markets?event_ticker=...
+          activeMode = "event";
+          activeEventTicker = eventTicker;
+
+          // ✅ fetch the event title/question and show above chart
+          const eventTitle = await fetchEventTitle(eventTicker);
+          if (eventTitle) {
+            questionEl.textContent = eventTitle;
+            questionEl.style.display = "block";
+          } else {
+            // fallback (still shows something nice)
+            questionEl.textContent = `Event: ${eventTicker}`;
+            questionEl.style.display = "block";
+          }
+
           const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
           const payload = await fetchJSON(url);
           setDebug(payload);
@@ -544,20 +568,14 @@
             throw new Error("No markets found for that event ticker (or event ticker is wrong).");
           }
 
-          // ✅ set mode
-          activeMode = "event";
-          activeEventTicker = eventTicker;
-
-          titleEl.textContent = `Event: ${eventTicker}`;
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
 
           lastEventMarkets = markets;
           renderMarketsList(eventTicker, markets);
 
-          // Chart the top 2 by volume (Kalshi-like for game events)
           const topByVol = [...markets].sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
           const tickersToChart = (markets.length >= 2 ? topByVol.slice(0, 2) : topByVol.slice(0, 1))
-            .map(m => m.ticker)
+            .map(m => (m.ticker || "").toUpperCase())
             .filter(Boolean);
 
           activeMarketTickersForChart = tickersToChart;
@@ -566,18 +584,21 @@
           statusEl.textContent = "Loaded";
         } catch (e) {
           statusEl.textContent = "Error";
-          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXNBAGAME-26FEB26LALPHX (all caps).`;
+          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXFEDCHAIRNOM-29 (all caps).`;
         }
       }
 
       function isProbablyEventTicker(s) {
         const hyphens = (s.match(/-/g) || []).length;
-        return hyphens === 1; // e.g., KXNBAGAME-26FEB26LALPHX
+        return hyphens === 1; // e.g., KXFEDCHAIRNOM-29
       }
 
       async function loadFromInput(raw) {
-        const value = (raw || "").trim();
+        const value = (raw || "").trim().toUpperCase();
         if (!value) return;
+
+        // ✅ normalize input box to caps
+        inputBox.value = value;
 
         const newUrl = new URL(location.href);
 
@@ -594,14 +615,23 @@
         }
       }
 
-      // Sort change rerenders table
+      // ✅ Auto-uppercase as user types (keeps cursor stable)
+      inputBox.addEventListener("input", (e) => {
+        const start = inputBox.selectionStart;
+        const end = inputBox.selectionEnd;
+        const upper = inputBox.value.toUpperCase();
+        if (inputBox.value !== upper) {
+          inputBox.value = upper;
+          try { inputBox.setSelectionRange(start, end); } catch (_) {}
+        }
+      });
+
       sortSelect.addEventListener("change", () => {
         const ev = params.get("event");
         if (!ev || !lastEventMarkets.length) return;
-        renderMarketsList(ev, lastEventMarkets);
+        renderMarketsList(ev.toUpperCase(), lastEventMarkets);
       });
 
-      // Range buttons
       document.querySelectorAll("[data-range]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           activeRange = btn.getAttribute("data-range");
@@ -614,26 +644,41 @@
         });
       });
 
-      // Auto-load from URL params
-      const urlTicker = params.get("ticker");
-      const urlEvent = params.get("event");
+      // ✅ Auto-load from URL params (also normalizes to caps + updates URL)
+      const urlTicker = (params.get("ticker") || "").trim();
+      const urlEvent = (params.get("event") || "").trim();
+
       if (urlEvent) {
-        el("inputBox").value = urlEvent;
-        loadEvent(urlEvent);
+        const up = urlEvent.toUpperCase();
+        inputBox.value = up;
+
+        // normalize URL to uppercase
+        const u = new URL(location.href);
+        if (u.searchParams.get("event") !== up) {
+          u.searchParams.set("event", up);
+          history.replaceState({}, "", u);
+        }
+        loadEvent(up);
       } else if (urlTicker) {
-        el("inputBox").value = urlTicker;
-        loadMarket(urlTicker);
+        const up = urlTicker.toUpperCase();
+        inputBox.value = up;
+
+        const u = new URL(location.href);
+        if (u.searchParams.get("ticker") !== up) {
+          u.searchParams.set("ticker", up);
+          history.replaceState({}, "", u);
+        }
+        loadMarket(up);
       }
 
-      // Manual load
-      el("loadBtn").addEventListener("click", () => loadFromInput(el("inputBox").value));
-      el("inputBox").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); loadFromInput(el("inputBox").value); }
+      el("loadBtn").addEventListener("click", () => loadFromInput(inputBox.value));
+      inputBox.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); loadFromInput(inputBox.value); }
       });
 
       // ✅ Auto-refresh every 30 minutes (no flicker, refreshes list/snapshot + chart)
       setInterval(async () => {
-        if (document.hidden) return; // don't refresh in background tabs
+        if (document.hidden) return;
         if (!activeMarketTickersForChart) return;
 
         try {
@@ -645,15 +690,10 @@
             await refreshActiveEventList();
           }
 
-          // refresh chart last (uses activeMarketTickersForChart)
           await loadChartForMarketTickers(activeMarketTickersForChart);
-
           statusEl.textContent = "Loaded";
-        } catch (e) {
-          // keep UI usable; just show a subtle error
+        } catch (_) {
           statusEl.textContent = "Loaded";
-          // Uncomment if you want to display refresh errors:
-          // errEl.textContent = `Auto-refresh error:\n${e.message}`;
         }
       }, AUTO_REFRESH_MS);
     </script>
