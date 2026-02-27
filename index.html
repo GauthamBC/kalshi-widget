@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Kalshi Market Widget</title>
 
-    <!-- Chart.js (simple, CDN) -->
+    <!-- Chart.js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- ✅ REQUIRED for `scales.x.type = "time"` in Chart.js v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
     <style>
       :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
