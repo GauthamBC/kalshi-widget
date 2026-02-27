@@ -198,13 +198,21 @@
       <!-- Stats bar -->
       <div class="row statsBar" id="statsBar">
         <div class="statTile" id="tileVol">
-          <div class="statLabel" id="volLabel">VOLUME</div>
+          <div class="statLabel" id="volLabel">VOLUME (TOTAL)</div>
           <div class="statValue" id="statVol">—</div>
         </div>
+
+        <!-- ✅ NEW: Volume 24h tile (between total volume + open interest) -->
+        <div class="statTile" id="tileVol24">
+          <div class="statLabel" id="vol24Label">VOLUME (24H)</div>
+          <div class="statValue" id="statVol24">—</div>
+        </div>
+
         <div class="statTile" id="tileOI">
           <div class="statLabel">OPEN INTEREST</div>
           <div class="statValue" id="statOI">—</div>
         </div>
+
         <div class="statTile" id="tileLiq" style="display:none;">
           <div class="statLabel">LIQUIDITY</div>
           <div class="statValue" id="statLiq">—</div>
@@ -309,6 +317,11 @@
       const statsBar = el("statsBar");
       const volLabel = el("volLabel");
       const statVol = el("statVol");
+
+      // ✅ NEW refs
+      const vol24Label = el("vol24Label");
+      const statVol24 = el("statVol24");
+
       const statOI = el("statOI");
       const tileLiq = el("tileLiq");
       const tileExp = el("tileExp");
@@ -387,6 +400,13 @@
 
         tileLiq.style.display = "none";
         tileExp.style.display = "none";
+
+        // ✅ reset new tile values
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = "—";
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = "—";
+        statOI.textContent = "—";
 
         hardDestroyChart();
       }
@@ -625,7 +645,10 @@
         return null;
       }
 
-      // --- EVENT totals like Kalshi headline: sum of market.volume and sum of market.open_interest
+      // --- EVENT totals like Kalshi headline:
+      // total volume = sum of market.volume
+      // volume 24h = sum of market.volume_24h
+      // open interest = sum of market.open_interest
       function computeEventTotals(markets) {
         const totalOI = sumNumbers(markets, (m) =>
           (typeof m?.open_interest === "number" ? m.open_interest : null)
@@ -633,7 +656,10 @@
         const totalVolContracts = sumNumbers(markets, (m) =>
           (typeof m?.volume === "number" ? m.volume : null)
         );
-        return { totalOI, totalVolContracts };
+        const totalVol24hContracts = sumNumbers(markets, (m) =>
+          (typeof m?.volume_24h === "number" ? m.volume_24h : null)
+        );
+        return { totalOI, totalVolContracts, totalVol24hContracts };
       }
 
       function pickEventTickersForChart() {
@@ -641,19 +667,17 @@
 
         if (eventChartMode === "selected") {
           if (selectedEventMarketTicker) return [selectedEventMarketTicker];
-          // fallback if nothing selected yet
           eventChartMode = "top2";
         }
 
         if (eventChartMode === "all") {
-          // WARNING: can be heavy, but user asked for Kalshi-like behavior; allow it
           return lastEventMarkets
             .map(m => (m.ticker || "").toUpperCase())
             .filter(Boolean)
-            .slice(0, 25); // safety cap so Chart.js doesn’t melt
+            .slice(0, 25); // safety cap
         }
 
-        // default: top2 by yes_bid (Kalshi screenshot usually shows 2 lines)
+        // default: top2 by yes_bid
         return [...lastEventMarkets]
           .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
           .slice(0, 2)
@@ -787,10 +811,14 @@
         metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
         gridEl.style.display = "grid";
 
-        // For single-market mode, stats bar can show contract volume as $ notional (optional)
+        // ✅ Stats (single market)
         statsBar.style.display = "flex";
         volLabel.textContent = "VOLUME (TOTAL)";
         statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+
         statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
       }
 
@@ -809,11 +837,16 @@
 
         lastEventMarkets = markets;
 
-        // Totals like Kalshi headline
+        // ✅ Totals like Kalshi headline (+ 24h)
         const totals = computeEventTotals(markets);
         statsBar.style.display = "flex";
+
         volLabel.textContent = "VOLUME (TOTAL)";
         statVol.textContent = formatUSD(totals.totalVolContracts);
+
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = formatUSD(totals.totalVol24hContracts);
+
         statOI.textContent = formatInt(totals.totalOI);
 
         metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
@@ -865,10 +898,14 @@
 
           tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
 
-          // stats
+          // ✅ stats
           statsBar.style.display = "flex";
           volLabel.textContent = "VOLUME (TOTAL)";
           statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+
+          vol24Label.textContent = "VOLUME (24H)";
+          statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+
           statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
 
           await loadChartForMarketTickers([activeMarketTicker]);
@@ -904,11 +941,16 @@
 
           lastEventMarkets = markets;
 
-          // totals like Kalshi headline
+          // ✅ totals like Kalshi headline (+ 24h)
           const totals = computeEventTotals(markets);
           statsBar.style.display = "flex";
+
           volLabel.textContent = "VOLUME (TOTAL)";
           statVol.textContent = formatUSD(totals.totalVolContracts);
+
+          vol24Label.textContent = "VOLUME (24H)";
+          statVol24.textContent = formatUSD(totals.totalVol24hContracts);
+
           statOI.textContent = formatInt(totals.totalOI);
 
           metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
