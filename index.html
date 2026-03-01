@@ -1266,7 +1266,7 @@
         const endMs = end * 1000;
         const crossesYears = (new Date(startMs).getFullYear() !== new Date(endMs).getFullYear());
         const longRange = (activeRange === "1y" || activeRange === "all");
-        const showYear = longRange and crossesYears
+        const showYear = longRange && crossesYears;
 
         const tickFmt =
           (activeRange === "live") ? "HH:mm"      :
