@@ -106,18 +106,24 @@
         flex-wrap:wrap;
         margin-top: 8px;
       }
-      .chartTitle{ font-weight:650; color:#fff; opacity:.9; }
+      .chartTitle{ font-weight:650; color:#111; }
 
       .btnGroup{ display:flex; gap:8px; flex-wrap:wrap; }
       .btnSmall{
         padding:6px 10px; font-size:12px; border-radius:999px;
-        border:1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.06);
-        color:#fff;
+        border:1px solid #d3d5da;
+        background:#eef0f3;
+        color:#111;
       }
-      .btnSmall:hover{ background: rgba(255,255,255,.10); }
+      .btnSmall:hover{ background:#e3e6eb; }
 
-      .chartBox{
+      .btnSmall.active,
+      .btnSmall.isActive{
+        background: var(--vi-yellow);
+        border-color: var(--vi-yellow-2);
+        color: var(--vi-black);
+      }
+.chartBox{
         margin-top:8px;
         border: 1px solid rgba(255,255,255,.10);
         border-radius: 16px;
@@ -227,28 +233,318 @@
       .statTile.hasTip::after { left: 12px; }
       .statTile.hasTip::before { left: 26px; }
 
+      /* ============================
+         VegasInsider brand overrides
+         Palette source: Branded Table Generator (VegasInsider)
+         ============================ */
+      :root{
+        --vi-yellow:#F2C23A;
+        --vi-yellow-2:#D9A72A;
+        --vi-yellow-soft: rgba(242, 194, 58, .18);
+        --vi-yellow-soft-2: rgba(242, 194, 58, .10);
+        --vi-black:#111111;
+        --vi-bg:#0b0b0b;
+        --vi-panel:#111111;
+        --vi-panel-2:#161616;
+        --vi-border:#2a2a2a;
+        --vi-text:#ffffff;
+        --vi-muted: rgba(255,255,255,.72);
+        --vi-muted2: rgba(255,255,255,.55);
+      }
+
+      body{ background: var(--vi-bg) !important; color: var(--vi-text) !important; }
+
+      .card{
+        background: var(--vi-panel) !important;
+        box-shadow: 0 10px 28px rgba(0,0,0,.45) !important;
+        border: 1px solid rgba(242, 194, 58, .18) !important;
+      }
+
+      /* Top pills */
+      .pill{
+        background: rgba(242, 194, 58, .14) !important;
+        border: 1px solid rgba(242, 194, 58, .35) !important;
+        color: var(--vi-text) !important;
+      }
+
+      h1{ color: var(--vi-text) !important; }
+      .label{ color: var(--vi-muted2) !important; }
+      .value{ color: var(--vi-text) !important; }
+      .muted{ color: var(--vi-muted) !important; }
+      .err{ color: #ff6b6b !important; }
+
+      code{ background: rgba(242, 194, 58, .14) !important; color: var(--vi-text) !important; border:1px solid rgba(242, 194, 58, .22) !important; }
+
+      /* Inputs + primary buttons */
+      input{
+        background: #0f0f0f !important;
+        color: var(--vi-text) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+      input::placeholder{ color: rgba(255,255,255,.45) !important; }
+
+      button{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+        font-weight: 800 !important;
+      }
+      button:hover{
+        background: var(--vi-yellow-2) !important;
+      }
+
+      /* Light boxes (single-market grid) */
+      .box{
+        background: var(--vi-panel-2) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+
+      /* Event question */
+      .question{ color: var(--vi-text) !important; }
+
+      /* Stats tiles: VegasInsider yellow fields */
+      .statTile{
+        background: linear-gradient(180deg, rgba(242, 194, 58, .98), rgba(242, 194, 58, .88)) !important;
+        border: 1px solid rgba(242, 194, 58, .95) !important;
+        color: #0b0b0b !important;
+      }
+      .statLabel{
+        color: rgba(0,0,0,.70) !important;
+        font-weight: 800 !important;
+      }
+      .statValue{
+        color: #000 !important;
+      }
+      .statLabel{ color: rgba(0,0,0,.70) !important; font-weight: 800 !important; }
+      .statValue{ color: #000 !important; }
+
+      /* Range buttons */
+      .btnSmall{
+        background: rgba(255,255,255,.06) !important;
+        border-color: rgba(255,255,255,.12) !important;
+        color: var(--vi-text) !important;
+        font-weight: 750 !important;
+      }
+      .btnSmall:hover{ background: rgba(255,255,255,.10) !important; }
+
+      .btnSmall.active,
+      .btnSmall.isActive{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+      }
+
+      /* Chart title + legend on dark page */
+      .chartTitle{ color: var(--vi-text) !important; }
+      .legendItem, .legendPct{ color: var(--vi-text) !important; }
+
+      /* Market list header */
+      .listTitle{ color: var(--vi-text) !important; }
+      .tag{
+        background: rgba(242, 194, 58, .14) !important;
+        border: 1px solid rgba(242, 194, 58, .25) !important;
+        color: var(--vi-text) !important;
+      }
+      .smallSelect{
+        background: #0f0f0f !important;
+        color: var(--vi-text) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+
+      /* Toggle */
+      .toggleBtn{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+      }
+      .toggleBtn:hover{ background: var(--vi-yellow-2) !important; }
+      .toggleBtn.isExpanded{
+        background: rgba(255,255,255,.06) !important;
+        color: var(--vi-text) !important;
+        border-color: rgba(255,255,255,.12) !important;
+      }
+
+      /* Table */
+      table{
+        border: 1px solid rgba(255,255,255,.10) !important;
+      }
+      th, td{
+        border-top-color: rgba(255,255,255,.10) !important;
+        color: var(--vi-text) !important;
+      }
+      thead th{
+        background: var(--vi-yellow) !important;
+        color: var(--vi-black) !important;
+        border-bottom: 1px solid rgba(0,0,0,.25) !important;
+      }
+      .tickerCell{ color: rgba(255,255,255,.75) !important; }
+      .clickable:hover{ background: var(--vi-yellow-soft-2) !important; }
+      .selectedRow{ background: var(--vi-yellow-soft) !important; }
+
+      /* Debug box */
+      .debug{
+        background: #0f0f0f !important;
+        border-color: rgba(255,255,255,.12) !important;
+        color: rgba(255,255,255,.80) !important;
+      }
+
+    
+      /* VegasInsider logo header */
+      .brandPill{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        padding:10px 16px;
+        height:44px;
+      }
+      .brandPill .viLogo{
+        display:block;
+        height:26px;
+        width:auto;
+        object-fit:contain;
+      }
+      .brandPill .brandText{
+        font-weight:800;
+        letter-spacing:.2px;
+        color:#fff;
+        white-space:nowrap;
+      }
+      .viLogo{
+        height:24px;
+        width:auto;
+        display:block;
+        /* Put the dark logo on a light chip so it stays readable */
+        background: rgba(255,255,255,0.92);
+        padding:6px 8px;
+        border-radius:10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.25);
+      }
+      
+      /* Mid header brand mark (centered) */
+.brandText{
+        font-weight: 800;
+        letter-spacing: .2px;
+      }
+
+      /* VegasInsider embed: hide status pill (keep element for JS) */
+      #status{display:none !important;}
+
+    
+      /* Header layout */
+      .headerRow{display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:8px;}
+      .eventTopTitle{
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--vi-yellow, #f7c948);
+        font-size: 28px;
+        line-height: 1.12;
+        text-shadow: 0 1px 0 rgba(0,0,0,.35);
+        margin: 0;
+        padding: 2px 0;
+        flex: 1;
+        min-width: 180px;
+      }
+      /* Hide legacy question block (we're showing it in the header now) */
+      #question{display:none !important;}
+
+
+    
+      /* --- VegasInsider: pre-load search UI --- */
+      .searchWrap{
+        max-width: 980px;
+        margin: 0 auto 14px auto;
+        padding: 0;
+      }
+      .searchInner{
+        background: #0b0b0c;
+        border: 1px solid rgba(255,211,77,.22);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 18px 44px rgba(0,0,0,.35);
+      }
+      .searchTitle{
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: .2px;
+        color: #fff;
+      }
+
+      .searchTitleRow{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+      }
+      .miniBtn{
+        appearance:none;
+        border:1px solid rgba(255,199,44,.55);
+        background: rgba(255,199,44,.10);
+        color: rgba(255,255,255,.92);
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        cursor: pointer;
+        user-select:none;
+        white-space: nowrap;
+        transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      }
+      .miniBtn:hover{
+        background: rgba(255,199,44,.16);
+        border-color: rgba(255,199,44,.75);
+      }
+      .miniBtn:active{ transform: translateY(1px); }
+      .miniBtn:focus-visible{
+        outline: 2px solid rgba(255,199,44,.55);
+        outline-offset: 2px;
+      }
+
+      .searchHint{
+        margin-top: 10px;
+        font-size: 13px;
+        color: rgba(255,255,255,.70);
+        line-height: 1.35;
+      }
+
     </style>
   </head>
 
+  
   <body>
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
-        <div class="pill">Kalshi Widget (market + event + chart)</div>
-        <div class="pill" id="status">Idle</div>
+    <!-- Search (shown before load) -->
+    <div class="searchWrap" id="searchWrap">
+      <div class="searchInner">
+        <div class="searchTitleRow">
+        <div class="searchTitle" id="title">Enter a market ticker or event ticker</div>
+        <button class="miniBtn" id="downloadHtmlBtn" type="button" title="Download this widget as an HTML file">Download HTML</button>
       </div>
-
-      <h1 id="title">Enter a market ticker or event ticker</h1>
-
-      <div class="row" style="margin-top:10px;">
-        <div style="flex:1; min-width: 260px;">
-          <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
+        <div class="row" style="margin-top:10px;">
+          <div style="flex:1; min-width: 260px;">
+            <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
+          </div>
+          <div class="row">
+            <button id="loadBtn">Load</button>
+          </div>
         </div>
-        <div class="row">
-          <button id="loadBtn">Load</button>
+        <div class="searchHint">
+          Use <span class="kbd">?ticker=...</span> for a single market or <span class="kbd">?event=...</span> for an event. Add <span class="kbd">&amp;debug=1</span> to show raw JSON.
         </div>
       </div>
+    </div>
 
-      <!-- Single market view -->
+    <!-- Widget (shown after load) -->
+    <div class="card" id="widgetCard" style="display:none;">
+
+            <div class="row headerRow">
+        <div class="eventTopTitle" id="eventTopTitle" style="display:none;"></div>
+        <div class="pill brandPill">
+          <img class="viLogo" src="https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png" alt="VegasInsider" />
+          <span class="brandText">Kalshi Widget</span>
+        </div>
+      </div>
+      <div class="pill" id="status" style="display:none;">Idle</div>
+<!-- Single market view -->
       <div class="grid" id="grid" style="display:none;">
         <div class="box">
           <div class="label">YES bid / ask</div>
@@ -309,15 +605,17 @@
         <div class="chartHeader">
           <div class="chartTitle" id="chartTitle">Chance</div>
           <div class="btnGroup">
+            <button class="btnSmall" data-range="live">LIVE</button>
+
             <button class="btnSmall" data-range="1d">1D</button>
             <button class="btnSmall" data-range="1w">1W</button>
             <button class="btnSmall" data-range="1m">1M</button>
+            <button class="btnSmall" data-range="1y">1Y</button>
             <button class="btnSmall" data-range="all">ALL</button>
           </div>
           <div class="btnGroup">
-            <button class="btnSmall" data-chartmode="top2">Top 2</button>
-            <button class="btnSmall" data-chartmode="selected">Selected</button>
-            <button class="btnSmall" data-chartmode="all">All</button>
+            <button class="btnSmall" data-chartmode="selected" id="btnSelectedMode">Selected</button>
+            <button class="btnSmall isActive" data-chartmode="default" id="btnDefaultMode">Default</button>
           </div>
         </div>
 
@@ -363,12 +661,7 @@
 
       <div class="err" id="error"></div>
       <div class="debug" id="debugBox"></div>
-
-      <div class="muted" style="margin-top:12px;">
-        Use <code>?ticker=...</code> for a single market or <code>?event=...</code> for an event.
-        Add <code>&debug=1</code> to show raw JSON.
-      </div>
-    </div>
+</div>
 
     <script>
       const BASE = "https://kalshi-proxy.gmarthandan.workers.dev/api";
@@ -376,6 +669,21 @@
       const el = (id) => document.getElementById(id);
       const statusEl = el("status");
       const titleEl = el("title");
+      const eventTopTitleEl = el("eventTopTitle");
+      const widgetCardEl = el("widgetCard");
+      const searchWrapEl = el("searchWrap");
+
+      // Keep the search UI visible even after loading, so users can quickly
+      // load another market/event without refreshing.
+      function showWidgetHideSearch(){
+        if (widgetCardEl) widgetCardEl.style.display = "block";
+        if (searchWrapEl) searchWrapEl.style.display = "block";
+      }
+      function showSearchHideWidget(){
+        if (widgetCardEl) widgetCardEl.style.display = "none";
+        if (searchWrapEl) searchWrapEl.style.display = "block";
+      }
+
       const gridEl = el("grid");
       const metaEl = el("meta");
       const errEl = el("error");
@@ -416,21 +724,80 @@
       const MAX_MARKETS_COLLAPSED = 5;
       let marketsExpanded = false;
       let activeRange = "1d";
+      // highlight default range
+      
       let activeEventTicker = null;
       let activeEventSection = null;
 
       let chart = null;
+      function updateRangeButtonsActive() {
+        document.querySelectorAll("[data-range]").forEach((b) => {
+          const r = b.getAttribute("data-range");
+          if (r === activeRange) b.classList.add("active");
+          else b.classList.remove("active");
+        });
+      }
+
       let activeMode = null; // "market" | "event"
       let activeMarketTicker = null;
 
       // EVENT chart behavior
-      let eventChartMode = "top2"; // "top2" | "selected" | "all"
+      let eventChartMode = "default"; // "default" | "selected" | "all"
       let selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
 
         marketsExpanded = false;
         if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; } // when user clicks a row in event mode
 
       const tickerToName = new Map();
+      // Cache for market open timestamps (unix seconds)
+      const marketOpenTsCache = new Map();
+
+      function isoToUnixSeconds(iso) {
+        if (!iso || typeof iso !== "string") return null;
+        const ms = Date.parse(iso);
+        if (Number.isNaN(ms)) return null;
+        return Math.floor(ms / 1000);
+      }
+
+      async function getMarketOpenTs(ticker) {
+        const t = (ticker || "").toUpperCase();
+        if (!t) return null;
+        if (marketOpenTsCache.has(t)) return marketOpenTsCache.get(t);
+
+        try {
+          const url = `${BASE}/markets/${encodeURIComponent(t)}`;
+          const payload = await fetchJSON(url);
+          const m = payload.market ?? payload;
+
+          // Try common fields
+          const iso =
+            (typeof m?.open_time === "string" ? m.open_time : null) ??
+            (typeof m?.created_time === "string" ? m.created_time : null) ??
+            (typeof m?.updated_time === "string" ? m.updated_time : null) ??
+            null;
+
+          const ts = isoToUnixSeconds(iso);
+          marketOpenTsCache.set(t, ts);
+          return ts;
+        } catch (_) {
+          marketOpenTsCache.set(t, null);
+          return null;
+        }
+      }
+
+      async function getEarliestOpenTs(tickers) {
+        if (!Array.isArray(tickers) || tickers.length === 0) return null;
+        const vals = await Promise.all(tickers.map(getMarketOpenTs));
+        let minTs = null;
+        for (const v of vals) {
+          if (typeof v === "number" && v > 0) {
+            if (minTs === null || v < minTs) minTs = v;
+          }
+        }
+        return minTs;
+      }
+
 
       function setDebug(obj) {
         if (!DEBUG) return;
@@ -463,6 +830,7 @@
         lastEventMarkets = [];
 
         titleEl.textContent = "Enter a market ticker or event ticker";
+        if (eventTopTitleEl) { eventTopTitleEl.textContent = ""; eventTopTitleEl.style.display = "none"; }
 
         questionEl.style.display = "none";
         questionEl.textContent = "";
@@ -482,6 +850,7 @@
 
         // reset event chart selection but keep last chosen chart mode (so UX feels consistent)
         selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
 
         marketsExpanded = false;
         if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
@@ -622,12 +991,50 @@
         return res.json();
       }
 
-      function rangeToWindow(range) {
+
+      // Fetch market inception timestamp (best effort) for ALL-range charts
+      async function fetchMarketStartTsSec(ticker) {
+        const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+        const payload = await fetchJSON(url);
+        const m = payload.market ?? payload;
+
+        const iso =
+          m?.open_time ||
+          m?.created_time ||
+          m?.create_time ||
+          m?.created_at ||
+          m?.created ||
+          null;
+
+        if (typeof iso === "string") {
+          const ms = Date.parse(iso);
+          if (Number.isFinite(ms)) return Math.floor(ms / 1000);
+        }
+        return null;
+      }
+
+
+      async function rangeToWindow(range, tickersForChart) {
         const nowSec = Math.floor(Date.now() / 1000);
-        if (range === "1d") return { start: nowSec - 86400, end: nowSec, interval: 60 };
-        if (range === "1w") return { start: nowSec - 7*86400, end: nowSec, interval: 60 };
-        if (range === "1m") return { start: nowSec - 30*86400, end: nowSec, interval: 1440 };
-        return { start: nowSec - 365*86400, end: nowSec, interval: 1440 };
+
+        if (range === "live") return { start: nowSec - 3600, end: nowSec, interval: 1 };       // last 1h, 1m candles
+        if (range === "1d")   return { start: nowSec - 86400, end: nowSec, interval: 60 };    // 24h, 60m candles
+        if (range === "1w")   return { start: nowSec - 7*86400, end: nowSec, interval: 60 };  // 7d, 60m candles
+        if (range === "1m")   return { start: nowSec - 30*86400, end: nowSec, interval: 1440 }; // 30d, 1d candles
+        if (range === "1y")   return { start: nowSec - 365*86400, end: nowSec, interval: 1440 }; // 1y, 1d candles
+
+        // ALL = since inception (earliest open/created among tickers), fallback to last 5y
+        let inception = null;
+        if (Array.isArray(tickersForChart) && tickersForChart.length) {
+          const starts = await Promise.all(
+            tickersForChart.slice(0, 10).map(t => fetchMarketStartTsSec(t).catch(() => null))
+          );
+          const nums = starts.filter(v => typeof v === "number" && Number.isFinite(v));
+          if (nums.length) inception = Math.min(...nums);
+        }
+
+        const start = inception ?? (nowSec - 5 * 365 * 86400);
+        return { start, end: nowSec, interval: 1440 };
       }
 
       function toChartPoints(candles) {
@@ -764,23 +1171,30 @@
       function pickEventTickersForChart() {
         if (!Array.isArray(lastEventMarkets) || lastEventMarkets.length === 0) return [];
 
-        if (eventChartMode === "selected") {
-          if (selectedEventMarketTicker) return [selectedEventMarketTicker];
-          eventChartMode = "top2";
+        // If user asked for Selected but hasn't picked a row yet, fall back to Default.
+        if (eventChartMode === "selected" && !selectedEventMarketTicker) {
+          eventChartMode = "default";
         }
 
-        if (eventChartMode === "all") {
-          return lastEventMarkets
-            .map(m => (m.ticker || "").toUpperCase())
-            .filter(Boolean)
-            .slice(0, 25); // safety cap
+        // Default view: show the top 2 markets by YES bid (fast + readable).
+        if (eventChartMode === "default") {
+          return [...lastEventMarkets]
+            .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+            .slice(0, 2)
+            .map((m) => (m.ticker || "").toUpperCase())
+            .filter(Boolean);
         }
 
-        // default: top2 by yes_bid
+        // Selected view: only the market the user clicked in the table.
+        if (eventChartMode === "selected" && selectedEventMarketTicker) {
+          return [selectedEventMarketTicker];
+        }
+
+        // Safety fallback
         return [...lastEventMarkets]
-          .sort((a,b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+          .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
           .slice(0, 2)
-          .map(m => (m.ticker || "").toUpperCase())
+          .map((m) => (m.ticker || "").toUpperCase())
           .filter(Boolean);
       }
 
@@ -788,7 +1202,7 @@
         if (!Array.isArray(tickers) || tickers.length === 0) return;
 
         hardDestroyChart();
-        const { start, end, interval } = rangeToWindow(activeRange);
+        const { start, end, interval } = await rangeToWindow(activeRange, tickers);
 
         const url =
           `${BASE}/markets/candlesticks` +
@@ -844,6 +1258,38 @@
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // X-axis unit & formatting (match Kalshi-style labels by range)
+        const xUnit =
+          (activeRange === "live") ? "minute" :
+          (activeRange === "1d")   ? "hour"   :
+          (activeRange === "1w")   ? "day"    :
+          (activeRange === "1m")   ? "day"    : "month";
+
+        // Tick labels (include year only for long ranges when the span crosses years)
+        const startMs = start * 1000;
+        const endMs = end * 1000;
+        const crossesYears = (new Date(startMs).getFullYear() !== new Date(endMs).getFullYear());
+        const longRange = (activeRange === "1y" || activeRange === "all");
+        const showYear = longRange && crossesYears;
+
+        const tickFmt =
+          (activeRange === "live") ? "HH:mm"      :
+          (activeRange === "1d")   ? "HH:mm"      :
+          (activeRange === "1w")   ? "d MMM"      :
+          (activeRange === "1m")   ? "d MMM"      :
+          (activeRange === "1y")   ? (showYear ? "dd MMM yy" : "dd MMM") :
+                                     (showYear ? "dd MMM yy" : "MMM");
+
+        // Tooltip title
+        const tooltipFmt =
+          (activeRange === "live") ? "d MMM, HH:mm" :
+          (activeRange === "1d")   ? "d MMM, HH:mm" :
+          (activeRange === "1w")   ? "d MMM"        :
+          (activeRange === "1m")   ? "d MMM"        :
+          (activeRange === "1y")   ? (showYear ? "dd MMM yy" : "dd MMM") :
+                                     (showYear ? "dd MMM yy" : "MMM");
+
+
         chart = new Chart(ctx, {
           type: "line",
           data: { datasets },
@@ -858,6 +1304,15 @@
                 mode: "index",
                 intersect: false,
                 callbacks: {
+                  title: (items) => {
+                    if (!items || !items.length) return "";
+                    const x = items[0].parsed?.x;
+                    if (!x) return "";
+                    // dateFns is provided by the date-fns CDN script above
+                    return (typeof dateFns !== "undefined")
+                      ? dateFns.format(new Date(x), tooltipFmt)
+                      : new Date(x).toLocaleString();
+                  },
                   label: (ctx) => {
                     const v = ctx.parsed?.y;
                     const nm = ctx.dataset?.label || "";
@@ -870,8 +1325,67 @@
             scales: {
               x: {
                 type: "time",
+                time: {
+                  unit: xUnit,
+                  displayFormats: {
+                    minute: "HH:mm",hour: "HH:mm",
+                    
+                    day: "d MMM",
+                    month: (showYear ? "dd MMM yy" : (activeRange === "1y" ? "dd MMM" : "MMM"))
+                  },
+                  tooltipFormat: tooltipFmt
+                },
                 grid: { color: "rgba(255,255,255,.06)" },
-                ticks: { color: "rgba(255,255,255,.70)", maxRotation: 0, autoSkip: true },
+                ticks: {
+                  color: "rgba(255,255,255,.70)",
+                  maxRotation: 0,
+                  autoSkip: true,
+                  maxTicksLimit:
+                    (activeRange === "live") ? 7 :
+                    (activeRange === "1d") ? 8 :
+                    (activeRange === "1w") ? 7 :
+                    (activeRange === "1m") ? 6 : 6,
+                  callback: (_value, index, ticks) => {
+                    // Use the underlying numeric tick value for consistent formatting.
+                    const raw = (ticks && ticks[index] && typeof ticks[index].value === "number")
+                      ? ticks[index].value
+                      : (typeof _value === "number" ? _value : Number(_value));
+
+                    if (!Number.isFinite(raw)) return "";
+
+                    const d = new Date(raw);
+
+                    // ✅ LIVE + 1D should be TIME-ONLY (no date), like Kalshi's own UI.
+                    if (activeRange === "live") {
+                      // show minute-level time (e.g., 3:41 PM)
+                      return new Intl.DateTimeFormat(undefined, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true
+                      }).format(d).replace(" ", "");
+                    }
+                    if (activeRange === "1d") {
+                      // show hour-only (e.g., 4PM)
+                      return new Intl.DateTimeFormat(undefined, {
+                        hour: "numeric",
+                        hour12: true
+                      }).format(d).replace(" ", "");
+                    }
+
+                    // Other ranges keep date-based labels
+                    try {
+                      if ((activeRange === "1y" || activeRange === "all") && crossesYears) {
+                        return (typeof dateFns !== "undefined" && dateFns.format)
+                          ? dateFns.format(d, "dd MMM yy")
+                          : d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" });
+                      }
+                      return (typeof dateFns !== "undefined" && dateFns.format)
+                        ? dateFns.format(d, tickFmt)
+                        : d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+                    } catch (_) {
+                      return d.toLocaleDateString();
+                    }
+                  }},
                 border: { color: "rgba(255,255,255,.12)" }
               },
               y: {
@@ -959,10 +1473,11 @@
           tickerToName.set(tkr, nm);
         }
 
-        // If selected ticker disappeared, fall back to top2
+        // If selected ticker disappeared, fall back to default
         if (selectedEventMarketTicker) {
           const stillExists = markets.some(m => (m.ticker || "").toUpperCase() === selectedEventMarketTicker);
           if (!stillExists) selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
 
         marketsExpanded = false;
         if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
@@ -988,6 +1503,7 @@
           }
 
           activeMode = "market";
+          if (eventTopTitleEl) { eventTopTitleEl.textContent = data.title || data.ticker || ticker; eventTopTitleEl.style.display = "block"; }
           activeMarketTicker = (data.ticker || ticker).toUpperCase();
 
           metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
@@ -999,6 +1515,8 @@
 
           gridEl.style.display = "grid";
           statusEl.textContent = "Loaded";
+        showWidgetHideSearch();
+          showWidgetHideSearch();
 
           tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
 
@@ -1016,6 +1534,7 @@
 
         } catch (e) {
           statusEl.textContent = "Error";
+        showSearchHideWidget();
           errEl.textContent = `Couldn’t load that market.\n${e.message}`;
         }
       }
@@ -1033,6 +1552,11 @@
           const eventTitle = await fetchEventTitle(eventTicker);
           questionEl.textContent = eventTitle || "Event question unavailable";
           questionEl.style.display = "block";
+          // VegasInsider header title
+          if (eventTopTitleEl) {
+            eventTopTitleEl.textContent = eventTitle || "";
+            eventTopTitleEl.style.display = eventTitle ? "block" : "none";
+          }
 
           const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
           const payload = await fetchJSON(url);
@@ -1068,9 +1592,10 @@
             tickerToName.set(tkr, nm);
           }
 
-          // default view = top2 like Kalshi
-          eventChartMode = "top2";
+          // default view = default like Kalshi
+          eventChartMode = "default";
           selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
 
         marketsExpanded = false;
         if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
@@ -1079,8 +1604,10 @@
           await loadEventChart();
 
           statusEl.textContent = "Loaded";
+        showWidgetHideSearch();
         } catch (e) {
           statusEl.textContent = "Error";
+        showSearchHideWidget();
           errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXPGATOUR-COCITPB26 (all caps).`;
         }
       }
@@ -1137,35 +1664,61 @@
       document.querySelectorAll("[data-range]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           activeRange = btn.getAttribute("data-range");
-          try {
+          
+          updateRangeButtonsActive();
+try {
             if (activeMode === "event") await loadEventChart();
             if (activeMode === "market" && activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
           } catch (e) {
             errEl.textContent = `Chart error:\n${e.message}`;
           }
         });
+
+      updateRangeButtonsActive();
+
       });
 
-      // chart-mode buttons (top2/selected/all)
+      // chart-mode buttons (default/selected/all)
       document.querySelectorAll("[data-chartmode]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           if (activeMode !== "event") return;
-          eventChartMode = btn.getAttribute("data-chartmode");
 
-          // if user clicks "selected" with nothing selected, pick first item
-          if (eventChartMode === "selected" && !selectedEventMarketTicker) {
-            const first = lastEventMarkets?.[0]?.ticker;
-            selectedEventMarketTicker = first ? first.toUpperCase() : null;
+          const mode = btn.getAttribute("data-chartmode");
+          if (!mode) return;
+
+          // Selected = show the clicked row's market; Default = reset to the original (Top 2 by YES bid).
+          if (mode === "selected") {
+            if (!selectedEventMarketTicker) {
+              // nothing selected yet → keep Default
+              eventChartMode = "default";
+            } else {
+              eventChartMode = "selected";
+            }
+          } else {
+            eventChartMode = "default";
           }
 
-          highlightSelectedRow();
+          // Update button UI
+          document.querySelectorAll("[data-chartmode]").forEach((b) => b.classList.remove("isActive"));
+          document.querySelector(`[data-chartmode="${eventChartMode}"]`)?.classList.add("isActive");
+          updateSelectedModeAvailability();
+
+          // Reload chart for the chosen mode
+          activeMarketTickersForChart = pickEventTickersForChart();
           try {
-            await loadEventChart();
+            await loadChartForMarketTickers(activeMarketTickersForChart);
           } catch (e) {
             errEl.textContent = `Chart error:\n${e.message}`;
           }
         });
       });
+
+      function updateSelectedModeAvailability() {
+        const selBtn = document.getElementById("btnSelectedMode");
+        if (!selBtn) return;
+        if (selectedEventMarketTicker) selBtn.classList.remove("isDisabled");
+        else selBtn.classList.add("isDisabled");
+      }
 
       // URL boot
       const urlTicker = (params.get("ticker") || "").trim();
@@ -1216,6 +1769,31 @@
           statusEl.textContent = "Loaded";
         }
       }, AUTO_REFRESH_MS);
+
+    // Download HTML button (exports current widget file)
+    (function(){
+      const btn = document.getElementById("downloadHtmlBtn");
+      if(!btn) return;
+      btn.addEventListener("click", () => {
+        try{
+          const doc = "<!doctype html>\n" + document.documentElement.outerHTML;
+          const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "kalshi_widget_vegasinsider.html";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+            a.remove();
+          }, 0);
+        }catch(e){
+          console.error("Download failed", e);
+        }
+      });
+    })();
+
     </script>
   </body>
 </html>
