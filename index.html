@@ -1266,7 +1266,7 @@
         const endMs = end * 1000;
         const crossesYears = (new Date(startMs).getFullYear() !== new Date(endMs).getFullYear());
         const longRange = (activeRange === "1y" || activeRange === "all");
-        const showYear = longRange && crossesYears;
+        const showYear = longRange and crossesYears
 
         const tickFmt =
           (activeRange === "live") ? "HH:mm"      :
@@ -1767,74 +1767,68 @@
         }
       }, AUTO_REFRESH_MS);
 
-    // Download HTML button (downloads a "locked" copy: hides search + auto-loads the currently loaded ticker)
+    // Download HTML button (downloads a "locked" copy: hide search + auto-load current ticker/event)
     (function(){
       const btn = document.getElementById("downloadHtmlBtn");
       if(!btn) return;
 
-      function injectIntoHead(html, cssText){
-        if(!cssText) return html;
-        if(html.includes(cssText)) return html;
-        return html.replace(/<\/head>/i, cssText + "\n</head>");
-      }
-      function injectBeforeBodyClose(html, injectText){
-        if(!injectText) return html;
-        if(html.includes(injectText)) return html;
-        return html.replace(/<\/body>/i, injectText + "\n</body>");
-      }
-
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         try{
-          // lock the last loaded thing (preferred) or the input value
-          const raw = (typeof activeMode !== "undefined" && activeMode === "event" && typeof activeEventTicker !== "undefined" && activeEventTicker)
-            ? activeEventTicker
-            : (typeof activeMode !== "undefined" && activeMode === "market" && typeof activeMarketTicker !== "undefined" && activeMarketTicker)
-              ? activeMarketTicker
-              : (document.getElementById("inputBox")?.value || "");
+          // Prefer the last loaded thing, else fallback to input box
+          const raw =
+            (typeof activeMode !== "undefined" && activeMode === "event" && typeof activeEventTicker !== "undefined" && activeEventTicker)
+              ? activeEventTicker
+              : (typeof activeMode !== "undefined" && activeMode === "market" && typeof activeMarketTicker !== "undefined" && activeMarketTicker)
+                ? activeMarketTicker
+                : (document.getElementById("inputBox")?.value || "");
 
-          const locked = (raw || "").trim();
+          const locked = (raw || "").trim().toUpperCase();
           if(!locked){
             alert("Enter a market ticker or event ticker first, then click Load.");
             return;
           }
 
-          if(location.protocol === "file:"){
-            alert("Download works best when this page is hosted (e.g., GitHub Pages). Please open the hosted URL, then click Download HTML.");
-            return;
-          }
+          // Start from the current DOM HTML (avoids brittle string-injection)
+          let out = "<!doctype html>\n" + document.documentElement.outerHTML;
 
-          // ✅ get the actual served HTML source (not the mutated DOM)
-          const res = await fetch(location.href, { cache: "no-store" });
-          const src0 = await res.text();
+          // Hide search bar in the downloaded copy
+          const hideSearchCSS = "\n<style id=\"__dl_hide_search__\">#searchWrap{display:none!important;}</style>\n";
+          out = out.replace(/<\/head>/i, hideSearchCSS + "</head>");
 
-          // hide search bar in downloaded copy
-          const cssInject = `<style id="__dl_hide_search__">#searchWrap{display:none!important;}</style>`;
-
-          // auto-load the locked ticker in downloaded copy
-          // NOTE: escape the closing script tag in the injected snippet so we don't break this script tag.
-          const bootInject =
-`<script id="__dl_boot__">
+          // Auto-boot: hardcode the selected ticker/event and load on open
+          const boot =
+`\n<script id="__dl_boot__">
 document.addEventListener("DOMContentLoaded", function(){
   try{
-    var v = ${JSON.stringify(locked)};
+    var HARDCODED_TICKER = ${JSON.stringify(locked)};
     var sw = document.getElementById("searchWrap"); if(sw) sw.style.display = "none";
-    var ib = document.getElementById("inputBox"); if(ib) ib.value = v;
     var card = document.getElementById("widgetCard"); if(card) card.style.display = "block";
-    if(typeof loadFromInput === "function"){ loadFromInput(v); }
+    var ib = document.getElementById("inputBox"); if(ib) ib.value = HARDCODED_TICKER;
+
+    // Keep URL in sync
+    try{
+      var u = new URL(location.href);
+      u.searchParams.delete("ticker");
+      u.searchParams.delete("event");
+      var hyphens = (HARDCODED_TICKER.match(/-/g) || []).length;
+      if(hyphens === 1) u.searchParams.set("event", HARDCODED_TICKER);
+      else u.searchParams.set("ticker", HARDCODED_TICKER);
+      history.replaceState({}, "", u);
+    }catch(_){}
+
+    if(typeof loadFromInput === "function") loadFromInput(HARDCODED_TICKER);
     else {
       var lb = document.getElementById("loadBtn");
       if(lb) lb.click();
     }
   }catch(e){ console.error(e); }
 });
-<\/script>`;
+<\/script>\n`;
 
-          let out = src0;
-          out = injectIntoHead(out, cssInject);
-          out = injectBeforeBodyClose(out, bootInject);
+          out = out.replace(/<\/body>/i, boot + "</body>");
 
           const safe = locked.replace(/[^A-Z0-9_-]+/g, "_");
-          const fname = "kalshi_widget_vegasinsider_" + safe + ".html";
+          const fname = "kalshi_widget_vegasinsider_" + safe + "_hardcoded.html";
 
           const blob = new Blob([out], { type: "text/html;charset=utf-8" });
           const url = URL.createObjectURL(blob);
@@ -1850,7 +1844,7 @@ document.addEventListener("DOMContentLoaded", function(){
         }
       });
     })();
-;
+
 
     </script>
   </body>
