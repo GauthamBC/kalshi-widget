@@ -1767,29 +1767,90 @@
         }
       }, AUTO_REFRESH_MS);
 
-    // Download HTML button (exports current widget file)
+    // Download HTML button (downloads a "locked" copy: hides search + auto-loads the currently loaded ticker)
     (function(){
       const btn = document.getElementById("downloadHtmlBtn");
       if(!btn) return;
-      btn.addEventListener("click", () => {
+
+      function injectIntoHead(html, cssText){
+        if(!cssText) return html;
+        if(html.includes(cssText)) return html;
+        return html.replace(/<\/head>/i, cssText + "\n</head>");
+      }
+      function injectBeforeBodyClose(html, injectText){
+        if(!injectText) return html;
+        if(html.includes(injectText)) return html;
+        return html.replace(/<\/body>/i, injectText + "\n</body>");
+      }
+
+      btn.addEventListener("click", async () => {
         try{
-          const doc = "<!doctype html>\n" + document.documentElement.outerHTML;
-          const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
+          // lock the last loaded thing (preferred) or the input value
+          const raw = (typeof activeMode !== "undefined" && activeMode === "event" && typeof activeEventTicker !== "undefined" && activeEventTicker)
+            ? activeEventTicker
+            : (typeof activeMode !== "undefined" && activeMode === "market" && typeof activeMarketTicker !== "undefined" && activeMarketTicker)
+              ? activeMarketTicker
+              : (document.getElementById("inputBox")?.value || "");
+
+          const locked = (raw || "").trim();
+          if(!locked){
+            alert("Enter a market ticker or event ticker first, then click Load.");
+            return;
+          }
+
+          if(location.protocol === "file:"){
+            alert("Download works best when this page is hosted (e.g., GitHub Pages). Please open the hosted URL, then click Download HTML.");
+            return;
+          }
+
+          // ✅ get the actual served HTML source (not the mutated DOM)
+          const res = await fetch(location.href, { cache: "no-store" });
+          const src0 = await res.text();
+
+          // hide search bar in downloaded copy
+          const cssInject = `<style id="__dl_hide_search__">#searchWrap{display:none!important;}</style>`;
+
+          // auto-load the locked ticker in downloaded copy
+          // NOTE: escape the closing script tag in the injected snippet so we don't break this script tag.
+          const bootInject =
+`<script id="__dl_boot__">
+document.addEventListener("DOMContentLoaded", function(){
+  try{
+    var v = ${JSON.stringify(locked)};
+    var sw = document.getElementById("searchWrap"); if(sw) sw.style.display = "none";
+    var ib = document.getElementById("inputBox"); if(ib) ib.value = v;
+    var card = document.getElementById("widgetCard"); if(card) card.style.display = "block";
+    if(typeof loadFromInput === "function"){ loadFromInput(v); }
+    else {
+      var lb = document.getElementById("loadBtn");
+      if(lb) lb.click();
+    }
+  }catch(e){ console.error(e); }
+});
+<\/script>`;
+
+          let out = src0;
+          out = injectIntoHead(out, cssInject);
+          out = injectBeforeBodyClose(out, bootInject);
+
+          const safe = locked.replace(/[^A-Z0-9_-]+/g, "_");
+          const fname = "kalshi_widget_vegasinsider_" + safe + ".html";
+
+          const blob = new Blob([out], { type: "text/html;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "kalshi_widget_vegasinsider.html";
+          a.download = fname;
           document.body.appendChild(a);
           a.click();
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-            a.remove();
-          }, 0);
+          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
         }catch(e){
           console.error("Download failed", e);
+          alert("Download failed. Open DevTools → Console for details.");
         }
       });
     })();
+;
 
     </script>
   </body>
