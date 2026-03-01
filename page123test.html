@@ -1,0 +1,1872 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kalshi Market Widget</title>
+
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- REQUIRED for `scales.x.type = "time"` in Chart.js v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+
+    <style>
+      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      body { margin: 0; padding: 16px; background: #f7f7f8; }
+
+      .card{
+        max-width: 980px; margin: 0 auto; background: #fff; border-radius: 14px;
+        padding: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      }
+
+      .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+      .pill { padding:6px 10px; border-radius:999px; background:#efefef; font-size:12px; }
+      h1 { font-size: 18px; margin: 0 0 10px; line-height: 1.3; }
+      input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
+      button { padding:10px 12px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+      button:hover { background:#fafafa; }
+
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+      .box { border:1px solid #eee; border-radius:12px; padding:12px; }
+      .label { font-size:12px; color:#666; margin-bottom:4px; }
+      .value { font-size:20px; font-weight:650; }
+      .muted { color:#666; font-size:13px; margin-top:10px; }
+      .err { color:#b00020; font-size:13px; margin-top:10px; white-space:pre-wrap; }
+      code { background:#f1f1f1; padding:2px 6px; border-radius:6px; }
+
+      .debug{
+        margin-top:12px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size:12px; background:#f6f6f7; border:1px solid #eee; border-radius:12px; padding:10px;
+        overflow:auto; display:none;
+      }
+
+      /* Event question above chart */
+      .question{
+        margin-top:14px;
+        font-size:18px;
+        font-weight:750;
+        color:#111;
+        display:none;
+      }
+
+      /* ===== Sleek chart area (dark) ===== */
+      .chartWrap { margin-top:4px; display:none; }
+
+      .statsBar{
+        margin-top:10px;
+        display:none;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+      .statTile{
+        flex: 1 1 220px;
+        min-width: 200px;
+        background:#0f1115;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:14px;
+        padding:12px 14px;
+      }
+      .statLabel{ font-size:12px; color:rgba(255,255,255,.65); letter-spacing:.3px; }
+      .statValue{ margin-top:4px; font-size:22px; font-weight:850; color:#fff; letter-spacing:.2px; }
+
+      /* Custom legend like Image 1 */
+      .legendRow{
+        margin-top:6px;
+        margin-bottom:-8px;
+        display:none;
+        gap:18px;
+        flex-wrap:wrap;
+        align-items:center;
+      }
+      .legendItem{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        font-size:16px;
+        font-weight:650;
+        color:#111;
+      }
+      .dot{
+        width:10px; height:10px; border-radius:999px;
+        display:inline-block;
+      }
+      .legendPct{
+        font-weight:850;
+        color:#111;
+        margin-left:6px;
+      }
+
+      .chartHeader{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-top: 8px;
+      }
+      .chartTitle{ font-weight:650; color:#111; }
+
+      .btnGroup{ display:flex; gap:8px; flex-wrap:wrap; }
+      .btnSmall{
+        padding:6px 10px; font-size:12px; border-radius:999px;
+        border:1px solid #d3d5da;
+        background:#eef0f3;
+        color:#111;
+      }
+      .btnSmall:hover{ background:#e3e6eb; }
+
+      .btnSmall.active,
+      .btnSmall.isActive{
+        background: var(--vi-yellow);
+        border-color: var(--vi-yellow-2);
+        color: var(--vi-black);
+      }
+.chartBox{
+        margin-top:8px;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 16px;
+        padding: 12px;
+        background: #0f1115; /* dark */
+        overflow:hidden;
+      }
+      canvas{ width:100% !important; height:360px !important; }
+
+      .chartMetaDark{
+        color: rgba(255,255,255,.65);
+        font-size: 12px;
+        margin-top: 8px;
+        line-height: 1.35;
+        word-break: break-word;
+      }
+
+      /* Event markets list */
+      .listWrap { margin-top: 12px; display:none; }
+      .listHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+      .listTitle { font-weight:650; }
+      .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
+      .smallSelect{ padding:8px 10px; border-radius:10px; border:1px solid #ddd; background:#fff; }
+
+      /* Toggle button (Show all / Show top 5) */
+      .toggleBtn{
+        border:1px solid #111;
+        background:#111;
+        color:#fff;
+        font-weight:650;
+        padding:8px 12px;
+        border-radius:999px;
+      }
+      .toggleBtn:hover{ background:#000; }
+      .toggleBtn.isExpanded{
+        background:#fff;
+        color:#111;
+        border-color:#ddd;
+      }
+
+      /* Slightly tighter + more even list header spacing */
+      .listHeader{ gap:14px; margin-bottom:10px; align-items:center; }
+      .listHeader .row{ gap:10px; }
+
+      /* Slightly tighter table */
+      th, td{ padding:9px 10px; }
+
+      table{ width:100%; border-collapse:separate; border-spacing:0; border-radius:12px; overflow:hidden; }
+      th, td{ text-align:left; padding:10px 10px; border-top:1px solid #eee; vertical-align:top; }
+      th{ font-size:12px; font-weight:700; }
+      thead th{
+        background:#111;
+        color:#fff;
+        border-top:none;
+        border-bottom:1px solid #222;
+      }
+      thead th:first-child{ border-top-left-radius:12px; }
+      thead th:last-child{ border-top-right-radius:12px; }
+
+      td{ font-size:13px; }
+      .tickerCell{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#333; }
+      .clickable{ cursor:pointer; }
+      .clickable:hover{ background:#fafafa; }
+      .selectedRow{ background:#eef6ff !important; }
+    
+
+      /* ===== Hover tooltips for stat tiles ===== */
+      .hasTip { position: relative; }
+      .hasTip::after,
+      .hasTip::before { opacity: 0; pointer-events: none; transition: opacity .12s ease; }
+      .hasTip:hover::after,
+      .hasTip:hover::before { opacity: 1; }
+
+      .hasTip::after{
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 12px;
+        top: 100%;
+        margin-top: 10px;
+        max-width: 360px;
+        background: rgba(15,17,21,.96);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.35;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 10px 26px rgba(0,0,0,.25);
+        z-index: 50;
+        white-space: normal;
+      }
+      .hasTip::before{
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 100%;
+        margin-top: 4px;
+        width: 10px; height: 10px;
+        background: rgba(15,17,21,.96);
+        border-left: 1px solid rgba(255,255,255,.14);
+        border-top: 1px solid rgba(255,255,255,.14);
+        transform: rotate(45deg);
+        z-index: 51;
+      }
+
+      /* Make tooltip positioning behave nicely inside the dark tiles */
+      .statTile.hasTip::after { left: 12px; }
+      .statTile.hasTip::before { left: 26px; }
+
+      /* ============================
+         VegasInsider brand overrides
+         Palette source: Branded Table Generator (VegasInsider)
+         ============================ */
+      :root{
+        --vi-yellow:#F2C23A;
+        --vi-yellow-2:#D9A72A;
+        --vi-yellow-soft: rgba(242, 194, 58, .18);
+        --vi-yellow-soft-2: rgba(242, 194, 58, .10);
+        --vi-black:#111111;
+        --vi-bg:#0b0b0b;
+        --vi-panel:#111111;
+        --vi-panel-2:#161616;
+        --vi-border:#2a2a2a;
+        --vi-text:#ffffff;
+        --vi-muted: rgba(255,255,255,.72);
+        --vi-muted2: rgba(255,255,255,.55);
+      }
+
+      body{ background: var(--vi-bg) !important; color: var(--vi-text) !important; }
+
+      .card{
+        background: var(--vi-panel) !important;
+        box-shadow: 0 10px 28px rgba(0,0,0,.45) !important;
+        border: 1px solid rgba(242, 194, 58, .18) !important;
+      }
+
+      /* Top pills */
+      .pill{
+        background: rgba(242, 194, 58, .14) !important;
+        border: 1px solid rgba(242, 194, 58, .35) !important;
+        color: var(--vi-text) !important;
+      }
+
+      h1{ color: var(--vi-text) !important; }
+      .label{ color: var(--vi-muted2) !important; }
+      .value{ color: var(--vi-text) !important; }
+      .muted{ color: var(--vi-muted) !important; }
+      .err{ color: #ff6b6b !important; }
+
+      code{ background: rgba(242, 194, 58, .14) !important; color: var(--vi-text) !important; border:1px solid rgba(242, 194, 58, .22) !important; }
+
+      /* Inputs + primary buttons */
+      input{
+        background: #0f0f0f !important;
+        color: var(--vi-text) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+      input::placeholder{ color: rgba(255,255,255,.45) !important; }
+
+      button{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+        font-weight: 800 !important;
+      }
+      button:hover{
+        background: var(--vi-yellow-2) !important;
+      }
+
+      /* Light boxes (single-market grid) */
+      .box{
+        background: var(--vi-panel-2) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+
+      /* Event question */
+      .question{ color: var(--vi-text) !important; }
+
+      /* Stats tiles: VegasInsider yellow fields */
+      .statTile{
+        background: linear-gradient(180deg, rgba(242, 194, 58, .98), rgba(242, 194, 58, .88)) !important;
+        border: 1px solid rgba(242, 194, 58, .95) !important;
+        color: #0b0b0b !important;
+      }
+      .statLabel{
+        color: rgba(0,0,0,.70) !important;
+        font-weight: 800 !important;
+      }
+      .statValue{
+        color: #000 !important;
+      }
+      .statLabel{ color: rgba(0,0,0,.70) !important; font-weight: 800 !important; }
+      .statValue{ color: #000 !important; }
+
+      /* Range buttons */
+      .btnSmall{
+        background: rgba(255,255,255,.06) !important;
+        border-color: rgba(255,255,255,.12) !important;
+        color: var(--vi-text) !important;
+        font-weight: 750 !important;
+      }
+      .btnSmall:hover{ background: rgba(255,255,255,.10) !important; }
+
+      .btnSmall.active,
+      .btnSmall.isActive{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+      }
+
+      /* Chart title + legend on dark page */
+      .chartTitle{ color: var(--vi-text) !important; }
+      .legendItem, .legendPct{ color: var(--vi-text) !important; }
+
+      /* Market list header */
+      .listTitle{ color: var(--vi-text) !important; }
+      .tag{
+        background: rgba(242, 194, 58, .14) !important;
+        border: 1px solid rgba(242, 194, 58, .25) !important;
+        color: var(--vi-text) !important;
+      }
+      .smallSelect{
+        background: #0f0f0f !important;
+        color: var(--vi-text) !important;
+        border: 1px solid var(--vi-border) !important;
+      }
+
+      /* Toggle */
+      .toggleBtn{
+        background: var(--vi-yellow) !important;
+        border-color: var(--vi-yellow-2) !important;
+        color: var(--vi-black) !important;
+      }
+      .toggleBtn:hover{ background: var(--vi-yellow-2) !important; }
+      .toggleBtn.isExpanded{
+        background: rgba(255,255,255,.06) !important;
+        color: var(--vi-text) !important;
+        border-color: rgba(255,255,255,.12) !important;
+      }
+
+      /* Table */
+      table{
+        border: 1px solid rgba(255,255,255,.10) !important;
+      }
+      th, td{
+        border-top-color: rgba(255,255,255,.10) !important;
+        color: var(--vi-text) !important;
+      }
+      thead th{
+        background: var(--vi-yellow) !important;
+        color: var(--vi-black) !important;
+        border-bottom: 1px solid rgba(0,0,0,.25) !important;
+      }
+      .tickerCell{ color: rgba(255,255,255,.75) !important; }
+      .clickable:hover{ background: var(--vi-yellow-soft-2) !important; }
+      .selectedRow{ background: var(--vi-yellow-soft) !important; }
+
+      /* Debug box */
+      .debug{
+        background: #0f0f0f !important;
+        border-color: rgba(255,255,255,.12) !important;
+        color: rgba(255,255,255,.80) !important;
+      }
+
+    
+      /* VegasInsider logo header */
+      .brandPill{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        padding:10px 16px;
+        height:44px;
+      }
+      .brandPill .viLogo{
+        display:block;
+        height:26px;
+        width:auto;
+        object-fit:contain;
+      }
+      .brandPill .brandText{
+        font-weight:800;
+        letter-spacing:.2px;
+        color:#fff;
+        white-space:nowrap;
+      }
+      .viLogo{
+        height:24px;
+        width:auto;
+        display:block;
+        /* Put the dark logo on a light chip so it stays readable */
+        background: rgba(255,255,255,0.92);
+        padding:6px 8px;
+        border-radius:10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.25);
+      }
+      
+      /* Mid header brand mark (centered) */
+.brandText{
+        font-weight: 800;
+        letter-spacing: .2px;
+      }
+
+      /* VegasInsider embed: hide status pill (keep element for JS) */
+      #status{display:none !important;}
+
+    
+      /* Header layout */
+      .headerRow{display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:8px;}
+      .eventTopTitle{
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--vi-yellow, #f7c948);
+        font-size: 28px;
+        line-height: 1.12;
+        text-shadow: 0 1px 0 rgba(0,0,0,.35);
+        margin: 0;
+        padding: 2px 0;
+        flex: 1;
+        min-width: 180px;
+      }
+      /* Hide legacy question block (we're showing it in the header now) */
+      #question{display:none !important;}
+
+
+    
+      /* --- VegasInsider: pre-load search UI --- */
+      .searchWrap{
+        max-width: 980px;
+        margin: 0 auto 14px auto;
+        padding: 0;
+      }
+      .searchInner{
+        background: #0b0b0c;
+        border: 1px solid rgba(255,211,77,.22);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 18px 44px rgba(0,0,0,.35);
+      }
+      .searchTitle{
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: .2px;
+        color: #fff;
+      }
+
+      .searchTitleRow{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+      }
+      .miniBtn{
+        appearance:none;
+        border:1px solid rgba(255,199,44,.55);
+        background: rgba(255,199,44,.10);
+        color: rgba(255,255,255,.92);
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        cursor: pointer;
+        user-select:none;
+        white-space: nowrap;
+        transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      }
+      .miniBtn:hover{
+        background: rgba(255,199,44,.16);
+        border-color: rgba(255,199,44,.75);
+      }
+      .miniBtn:active{ transform: translateY(1px); }
+      .miniBtn:focus-visible{
+        outline: 2px solid rgba(255,199,44,.55);
+        outline-offset: 2px;
+      }
+
+      .searchHint{
+        margin-top: 10px;
+        font-size: 13px;
+        color: rgba(255,255,255,.70);
+        line-height: 1.35;
+      }
+
+    </style>
+  </head>
+
+  
+  <body>
+    <!-- Search (shown before load) -->
+    <div class="searchWrap" id="searchWrap">
+      <div class="searchInner">
+        <div class="searchTitleRow">
+        <div class="searchTitle" id="title">Enter a market ticker or event ticker</div>
+        <button class="miniBtn" id="downloadHtmlBtn" type="button" title="Download this widget as an HTML file">Download HTML</button>
+      </div>
+        <div class="row" style="margin-top:10px;">
+          <div style="flex:1; min-width: 260px;">
+            <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
+          </div>
+          <div class="row">
+            <button id="loadBtn">Load</button>
+          </div>
+        </div>
+        <div class="searchHint">
+          Use <span class="kbd">?ticker=...</span> for a single market or <span class="kbd">?event=...</span> for an event. Add <span class="kbd">&amp;debug=1</span> to show raw JSON.
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget (shown after load) -->
+    <div class="card" id="widgetCard" style="display:none;">
+
+            <div class="row headerRow">
+        <div class="eventTopTitle" id="eventTopTitle" style="display:none;"></div>
+        <div class="pill brandPill">
+          <img class="viLogo" src="https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png" alt="VegasInsider" />
+          <span class="brandText">Kalshi Widget</span>
+        </div>
+      </div>
+      <div class="pill" id="status" style="display:none;">Idle</div>
+<!-- Single market view -->
+      <div class="grid" id="grid" style="display:none;">
+        <div class="box">
+          <div class="label">YES bid / ask</div>
+          <div class="value" id="yesBidAsk">—</div>
+        </div>
+        <div class="box">
+          <div class="label">NO bid / ask</div>
+          <div class="value" id="noBidAsk">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Last price</div>
+          <div class="value" id="lastPrice">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Volume</div>
+          <div class="value" id="volume">—</div>
+        </div>
+      </div>
+
+      <div class="muted" id="meta"></div>
+
+      <!-- Event question above the chart -->
+      <div class="question" id="question"></div>
+
+      <!-- Stats bar -->
+      <div class="row statsBar" id="statsBar">
+        <div class="statTile hasTip" id="tileVol" data-tooltip="Volume (Total): All contracts traded since this market opened (lifetime activity).">
+          <div class="statLabel" id="volLabel">VOLUME (TOTAL)</div>
+          <div class="statValue" id="statVol">—</div>
+        </div>
+
+        <!-- ✅ NEW: Volume 24h tile (between total volume + open interest) -->
+        <div class="statTile hasTip" id="tileVol24" data-tooltip="Volume (24h): Contracts traded in the last 24 hours (recent activity).">
+          <div class="statLabel" id="vol24Label">VOLUME (24H)</div>
+          <div class="statValue" id="statVol24">—</div>
+        </div>
+
+        <div class="statTile hasTip" id="tileOI" data-tooltip="Open Interest: Contracts currently being held right now (active positions still open). Measured in contracts (not dollars).">
+          <div class="statLabel">OPEN INTEREST</div>
+          <div class="statValue" id="statOI">—</div>
+        </div>
+
+        <div class="statTile" id="tileLiq" style="display:none;">
+          <div class="statLabel">LIQUIDITY</div>
+          <div class="statValue" id="statLiq">—</div>
+        </div>
+        <div class="statTile" id="tileExp" style="display:none;">
+          <div class="statLabel">EXPIRATION</div>
+          <div class="statValue" id="statExp">—</div>
+        </div>
+      </div>
+
+      <!-- Name legend -->
+      <div class="legendRow" id="legendRow"></div>
+
+      <!-- Chart -->
+      <div class="chartWrap" id="chartWrap">
+        <div class="chartHeader">
+          <div class="chartTitle" id="chartTitle">Chance</div>
+          <div class="btnGroup">
+            <button class="btnSmall" data-range="live">LIVE</button>
+
+            <button class="btnSmall" data-range="1d">1D</button>
+            <button class="btnSmall" data-range="1w">1W</button>
+            <button class="btnSmall" data-range="1m">1M</button>
+            <button class="btnSmall" data-range="1y">1Y</button>
+            <button class="btnSmall" data-range="all">ALL</button>
+          </div>
+          <div class="btnGroup">
+            <button class="btnSmall" data-chartmode="selected" id="btnSelectedMode">Selected</button>
+            <button class="btnSmall isActive" data-chartmode="default" id="btnDefaultMode">Default</button>
+          </div>
+        </div>
+
+        <div class="chartBox">
+          <canvas id="priceChart"></canvas>
+          <div class="chartMetaDark" id="chartMeta"></div>
+        </div>
+      </div>
+
+      <!-- Event markets list -->
+      <div class="listWrap" id="listWrap">
+        <div class="listHeader">
+          <div class="listTitle" id="listTitle">Markets</div>
+          <div class="row">
+            <span class="tag" id="countTag">0 markets</span>
+            <button class="smallSelect toggleBtn" id="toggleMarketsBtn" type="button" title="Expand/collapse the markets list" style="cursor:pointer;">Show all</button>
+            <select class="smallSelect" id="sortSelect" title="Sort markets">
+              <option value="yes_desc">Sort: YES bid (high → low)</option>
+              <option value="yes_asc">Sort: YES bid (low → high)</option>
+              <option value="vol_desc">Sort: Volume (high → low)</option>
+              <option value="title_asc">Sort: Title (A → Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:42%;">Market</th>
+              <th style="width:18%;">YES (bid/ask)</th>
+              <th style="width:18%;">NO (bid/ask)</th>
+              <th style="width:10%;">Vol</th>
+              <th style="width:12%;">Ticker</th>
+            </tr>
+          </thead>
+          <tbody id="marketsTbody"></tbody>
+        </table>
+
+        <div class="muted" style="margin-top:8px;">
+          Tip: click any row to update the chart to that market.
+        </div>
+      </div>
+
+      <div class="err" id="error"></div>
+      <div class="debug" id="debugBox"></div>
+</div>
+
+    <script>
+      const BASE = "https://kalshi-proxy.gmarthandan.workers.dev/api";
+
+      const el = (id) => document.getElementById(id);
+      const statusEl = el("status");
+      const titleEl = el("title");
+      const eventTopTitleEl = el("eventTopTitle");
+      const widgetCardEl = el("widgetCard");
+      const searchWrapEl = el("searchWrap");
+
+      // Keep the search UI visible even after loading, so users can quickly
+      // load another market/event without refreshing.
+      function showWidgetHideSearch(){
+        if (widgetCardEl) widgetCardEl.style.display = "block";
+        if (searchWrapEl) searchWrapEl.style.display = "block";
+      }
+      function showSearchHideWidget(){
+        if (widgetCardEl) widgetCardEl.style.display = "none";
+        if (searchWrapEl) searchWrapEl.style.display = "block";
+      }
+
+      const gridEl = el("grid");
+      const metaEl = el("meta");
+      const errEl = el("error");
+      const debugBox = el("debugBox");
+      const questionEl = el("question");
+      const inputBox = el("inputBox");
+
+      const listWrap = el("listWrap");
+      const listTitle = el("listTitle");
+      const countTag = el("countTag");
+      const marketsTbody = el("marketsTbody");
+      const sortSelect = el("sortSelect");
+      const toggleMarketsBtn = el("toggleMarketsBtn");
+
+      const chartWrap = el("chartWrap");
+      const chartMeta = el("chartMeta");
+      const legendRow = el("legendRow");
+
+      const statsBar = el("statsBar");
+      const volLabel = el("volLabel");
+      const statVol = el("statVol");
+
+      // ✅ NEW refs
+      const vol24Label = el("vol24Label");
+      const statVol24 = el("statVol24");
+
+      const statOI = el("statOI");
+      const tileLiq = el("tileLiq");
+      const tileExp = el("tileExp");
+
+      const params = new URLSearchParams(location.search);
+      const DEBUG = params.get("debug") === "1";
+
+      const AUTO_REFRESH_MINUTES = 30;
+      const AUTO_REFRESH_MS = AUTO_REFRESH_MINUTES * 60 * 1000;
+
+      let lastEventMarkets = [];
+      const MAX_MARKETS_COLLAPSED = 5;
+      let marketsExpanded = false;
+      let activeRange = "1d";
+      // highlight default range
+      
+      let activeEventTicker = null;
+      let activeEventSection = null;
+
+      let chart = null;
+      function updateRangeButtonsActive() {
+        document.querySelectorAll("[data-range]").forEach((b) => {
+          const r = b.getAttribute("data-range");
+          if (r === activeRange) b.classList.add("active");
+          else b.classList.remove("active");
+        });
+      }
+
+      let activeMode = null; // "market" | "event"
+      let activeMarketTicker = null;
+
+      // EVENT chart behavior
+      let eventChartMode = "default"; // "default" | "selected" | "all"
+      let selectedEventMarketTicker = null;
+
+      const tickerToName = new Map();
+      // Cache for market open timestamps (unix seconds)
+      const marketOpenTsCache = new Map();
+
+      function isoToUnixSeconds(iso) {
+        if (!iso || typeof iso !== "string") return null;
+        const ms = Date.parse(iso);
+        if (Number.isNaN(ms)) return null;
+        return Math.floor(ms / 1000);
+      }
+
+      async function getMarketOpenTs(ticker) {
+        const t = (ticker || "").toUpperCase();
+        if (!t) return null;
+        if (marketOpenTsCache.has(t)) return marketOpenTsCache.get(t);
+
+        try {
+          const url = `${BASE}/markets/${encodeURIComponent(t)}`;
+          const payload = await fetchJSON(url);
+          const m = payload.market ?? payload;
+
+          // Try common fields
+          const iso =
+            (typeof m?.open_time === "string" ? m.open_time : null) ??
+            (typeof m?.created_time === "string" ? m.created_time : null) ??
+            (typeof m?.updated_time === "string" ? m.updated_time : null) ??
+            null;
+
+          const ts = isoToUnixSeconds(iso);
+          marketOpenTsCache.set(t, ts);
+          return ts;
+        } catch (_) {
+          marketOpenTsCache.set(t, null);
+          return null;
+        }
+      }
+
+      async function getEarliestOpenTs(tickers) {
+        if (!Array.isArray(tickers) || tickers.length === 0) return null;
+        const vals = await Promise.all(tickers.map(getMarketOpenTs));
+        let minTs = null;
+        for (const v of vals) {
+          if (typeof v === "number" && v > 0) {
+            if (minTs === null || v < minTs) minTs = v;
+          }
+        }
+        return minTs;
+      }
+
+
+      function setDebug(obj) {
+        if (!DEBUG) return;
+        debugBox.style.display = "block";
+        debugBox.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function hardDestroyChart() {
+        const canvas = document.getElementById("priceChart");
+        if (!canvas || typeof Chart === "undefined" || !Chart.getChart) {
+          if (chart) { try { chart.destroy(); } catch (_) {} chart = null; }
+          return;
+        }
+        const existing = Chart.getChart(canvas);
+        if (existing) { try { existing.destroy(); } catch (_) {} }
+        chart = null;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function clearUI() {
+        errEl.textContent = "";
+        debugBox.style.display = "none";
+        debugBox.textContent = "";
+        gridEl.style.display = "none";
+        metaEl.textContent = "";
+        listWrap.style.display = "none";
+        marketsTbody.innerHTML = "";
+        lastEventMarkets = [];
+
+        titleEl.textContent = "Enter a market ticker or event ticker";
+        if (eventTopTitleEl) { eventTopTitleEl.textContent = ""; eventTopTitleEl.style.display = "none"; }
+
+        questionEl.style.display = "none";
+        questionEl.textContent = "";
+
+        statsBar.style.display = "none";
+        legendRow.style.display = "none";
+        legendRow.innerHTML = "";
+        tickerToName.clear();
+
+        chartWrap.style.display = "none";
+        chartMeta.textContent = "";
+        activeEventTicker = null;
+        activeEventSection = null;
+
+        activeMode = null;
+        activeMarketTicker = null;
+
+        // reset event chart selection but keep last chosen chart mode (so UX feels consistent)
+        selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
+
+        tileLiq.style.display = "none";
+        tileExp.style.display = "none";
+
+        // ✅ reset new tile values
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = "—";
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = "—";
+        statOI.textContent = "—";
+
+        hardDestroyChart();
+      }
+
+      function fmtCentsOrNull(x) {
+        if (x === null || x === undefined) return "—";
+        if (typeof x === "number") return `${x}¢`;
+        return String(x);
+      }
+
+      function n(x) {
+        return (typeof x === "number" && !Number.isNaN(x)) ? x : null;
+      }
+
+      function formatInt(x) {
+        if (typeof x !== "number" || Number.isNaN(x)) return "—";
+        return x.toLocaleString();
+      }
+
+      function formatUSD(x) {
+        if (typeof x !== "number" || Number.isNaN(x)) return "—";
+        return x.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+      }
+
+      function extractCandidateNameFromTitle(title, fallbackTicker) {
+        const t = (title || "").trim();
+        const m = t.match(/nominate\s+(.+?)\s+as\s+/i);
+        if (m && m[1]) return m[1].trim();
+        const parts = (fallbackTicker || "").split("-");
+        return parts[parts.length - 1] || fallbackTicker || "—";
+      }
+
+      function sortMarkets(markets, mode) {
+        const m = [...markets];
+        const yesBid = (o) => (typeof o.yes_bid === "number" ? o.yes_bid : -Infinity);
+        const vol = (o) => (typeof o.volume === "number" ? o.volume : -Infinity);
+        const title = (o) => (o.title || "").toLowerCase();
+
+        switch (mode) {
+          case "yes_asc":  m.sort((a,b) => yesBid(a) - yesBid(b)); break;
+          case "vol_desc": m.sort((a,b) => vol(b) - vol(a)); break;
+          case "title_asc": m.sort((a,b) => title(a).localeCompare(title(b))); break;
+          case "yes_desc":
+          default: m.sort((a,b) => yesBid(b) - yesBid(a)); break;
+        }
+        return m;
+      }
+
+      function renderMarketsList(markets) {
+        listWrap.style.display = "block";
+        listTitle.textContent = (activeEventSection || "Markets");
+        countTag.textContent = `${markets.length} markets`;
+
+        const sorted = sortMarkets(markets, sortSelect.value);
+
+        const display = marketsExpanded ? sorted : sorted.slice(0, MAX_MARKETS_COLLAPSED);
+        if (toggleMarketsBtn) {
+          toggleMarketsBtn.style.display = (sorted.length > MAX_MARKETS_COLLAPSED) ? 'inline-block' : 'none';
+          toggleMarketsBtn.textContent = marketsExpanded ? `Show top ${MAX_MARKETS_COLLAPSED}` : `Show all`;
+          toggleMarketsBtn.classList.toggle('isExpanded', marketsExpanded);
+        }
+        countTag.textContent = marketsExpanded
+          ? `${sorted.length} markets`
+          : `Top ${Math.min(MAX_MARKETS_COLLAPSED, sorted.length)} of ${sorted.length}`;
+
+        marketsTbody.innerHTML = "";
+
+        for (const mk of display) {
+          const tkr = (mk.ticker || "").toUpperCase();
+
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.dataset.ticker = tkr;
+
+          // IMPORTANT: in EVENT mode, clicking row should update chart (not switch to single-market mode)
+          tr.addEventListener("click", async () => {
+            if (activeMode !== "event") return;
+
+            selectedEventMarketTicker = tkr;
+            eventChartMode = "selected"; // clicking a row implies "show selected"
+
+            highlightSelectedRow();
+            try {
+              await loadEventChart();
+            } catch (e) {
+              errEl.textContent = `Chart error:\n${e.message}`;
+            }
+          });
+
+          const yes = `${fmtCentsOrNull(n(mk.yes_bid))} / ${fmtCentsOrNull(n(mk.yes_ask))}`;
+          const no  = `${fmtCentsOrNull(n(mk.no_bid))} / ${fmtCentsOrNull(n(mk.no_ask))}`;
+
+          tr.innerHTML = `
+            <td>${mk.title || "—"}</td>
+            <td>${yes}</td>
+            <td>${no}</td>
+            <td>${(mk.volume ?? "—").toString()}</td>
+            <td class="tickerCell">${mk.ticker || "—"}</td>
+          `;
+          marketsTbody.appendChild(tr);
+        }
+
+        highlightSelectedRow();
+      }
+
+      function highlightSelectedRow() {
+        const rows = marketsTbody.querySelectorAll("tr");
+        rows.forEach(r => r.classList.remove("selectedRow"));
+        if (!selectedEventMarketTicker) return;
+        const hit = marketsTbody.querySelector(`tr[data-ticker="${CSS.escape(selectedEventMarketTicker)}"]`);
+        if (hit) hit.classList.add("selectedRow");
+      }
+
+      async function fetchJSON(url) {
+        const res = await fetch(url, { headers: { "Accept": "application/json" } });
+        if (!res.ok) {
+          let extra = "";
+          try {
+            const j = await res.json();
+            extra = j?.error?.message ? ` — ${j.error.message}` : "";
+            setDebug(j);
+          } catch (_) {}
+          throw new Error(`HTTP ${res.status}${extra}`);
+        }
+        return res.json();
+      }
+
+
+      // Fetch market inception timestamp (best effort) for ALL-range charts
+      async function fetchMarketStartTsSec(ticker) {
+        const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+        const payload = await fetchJSON(url);
+        const m = payload.market ?? payload;
+
+        const iso =
+          m?.open_time ||
+          m?.created_time ||
+          m?.create_time ||
+          m?.created_at ||
+          m?.created ||
+          null;
+
+        if (typeof iso === "string") {
+          const ms = Date.parse(iso);
+          if (Number.isFinite(ms)) return Math.floor(ms / 1000);
+        }
+        return null;
+      }
+
+
+      async function rangeToWindow(range, tickersForChart) {
+        const nowSec = Math.floor(Date.now() / 1000);
+
+        if (range === "live") return { start: nowSec - 3600, end: nowSec, interval: 1 };       // last 1h, 1m candles
+        if (range === "1d")   return { start: nowSec - 86400, end: nowSec, interval: 60 };    // 24h, 60m candles
+        if (range === "1w")   return { start: nowSec - 7*86400, end: nowSec, interval: 60 };  // 7d, 60m candles
+        if (range === "1m")   return { start: nowSec - 30*86400, end: nowSec, interval: 1440 }; // 30d, 1d candles
+        if (range === "1y")   return { start: nowSec - 365*86400, end: nowSec, interval: 1440 }; // 1y, 1d candles
+
+        // ALL = since inception (earliest open/created among tickers), fallback to last 5y
+        let inception = null;
+        if (Array.isArray(tickersForChart) && tickersForChart.length) {
+          const starts = await Promise.all(
+            tickersForChart.slice(0, 10).map(t => fetchMarketStartTsSec(t).catch(() => null))
+          );
+          const nums = starts.filter(v => typeof v === "number" && Number.isFinite(v));
+          if (nums.length) inception = Math.min(...nums);
+        }
+
+        const start = inception ?? (nowSec - 5 * 365 * 86400);
+        return { start, end: nowSec, interval: 1440 };
+      }
+
+      function toChartPoints(candles) {
+        const pts = [];
+        for (const c of (candles || [])) {
+          const ts = c.end_period_ts;
+          const close = c?.price?.close;
+          if (typeof ts === "number" && typeof close === "number") {
+            pts.push({ x: ts * 1000, y: close });
+          }
+        }
+        return pts;
+      }
+
+      function sumNumbers(arr, getter) {
+        let s = 0;
+        for (const x of arr) {
+          const v = getter(x);
+          if (typeof v === "number" && !Number.isNaN(v)) s += v;
+        }
+        return s;
+      }
+
+      function renderLegendFromDatasets(datasets) {
+        legendRow.innerHTML = "";
+        if (!Array.isArray(datasets) || datasets.length === 0) {
+          legendRow.style.display = "none";
+          return;
+        }
+        legendRow.style.display = "flex";
+
+        for (const ds of datasets) {
+          const data = Array.isArray(ds.data) ? ds.data : [];
+          const last = data.length ? data[data.length - 1].y : null;
+          const pct = (typeof last === "number") ? `${Math.round(last)}%` : "—";
+
+          const item = document.createElement("div");
+          item.className = "legendItem";
+
+          const dot = document.createElement("span");
+          dot.className = "dot";
+          dot.style.background = ds.borderColor || "#999";
+
+          const name = document.createElement("span");
+          name.textContent = ds.label || "—";
+
+          const pctEl = document.createElement("span");
+          pctEl.className = "legendPct";
+          pctEl.textContent = pct;
+
+          item.appendChild(dot);
+          item.appendChild(name);
+          item.appendChild(pctEl);
+
+          legendRow.appendChild(item);
+        }
+      }
+
+      function prettyMarketsLine(tickers) {
+        const names = (tickers || [])
+          .map(t => tickerToName.get((t || "").toUpperCase()) || t)
+          .filter(Boolean);
+        return names.join(" , ");
+      }
+
+      function pickFirstString(obj, keys) {
+        for (const k of keys) {
+          const v = obj?.[k];
+          if (typeof v === "string" && v.trim()) return v.trim();
+        }
+        return null;
+      }
+
+      function buildEventSection(ev) {
+        const category =
+          pickFirstString(ev, ["category_title", "category", "category_name"]) ||
+          pickFirstString(ev?.category, ["title", "name"]) ||
+          (Array.isArray(ev?.categories) ? pickFirstString(ev.categories[0], ["title", "name"]) : null);
+
+        const topic =
+          pickFirstString(ev, ["series_title", "series", "topic", "subcategory_title", "subtitle"]) ||
+          pickFirstString(ev?.series, ["title", "name"]) ||
+          (Array.isArray(ev?.tags)
+            ? (typeof ev.tags[0] === "string" ? ev.tags[0] : pickFirstString(ev.tags[0], ["title", "name"]))
+            : null);
+
+        if (category && topic) return `${category} · ${topic}`;
+        if (category) return category;
+        if (topic) return topic;
+        return null;
+      }
+
+      async function fetchEventSection(eventTicker) {
+        try {
+          const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
+          const payload = await fetchJSON(url);
+          if (DEBUG) setDebug(payload);
+          const ev = payload.event ?? payload;
+          const section = buildEventSection(ev);
+          if (typeof section === "string" && section.trim()) return section.trim();
+        } catch (_) {}
+        return null;
+      }
+
+      async function fetchEventTitle(eventTicker) {
+        try {
+          const url = `${BASE}/events/${encodeURIComponent(eventTicker)}`;
+          const payload = await fetchJSON(url);
+          if (DEBUG) setDebug(payload);
+          const ev = payload.event ?? payload;
+          const t = ev?.title || ev?.name || ev?.question;
+          if (typeof t === "string" && t.trim()) return t.trim();
+        } catch (_) {}
+        return null;
+      }
+
+      // --- EVENT totals like Kalshi headline:
+      // total volume = sum of market.volume
+      // volume 24h = sum of market.volume_24h
+      // open interest = sum of market.open_interest
+      function computeEventTotals(markets) {
+        const totalOI = sumNumbers(markets, (m) =>
+          (typeof m?.open_interest === "number" ? m.open_interest : null)
+        );
+        const totalVolContracts = sumNumbers(markets, (m) =>
+          (typeof m?.volume === "number" ? m.volume : null)
+        );
+        const totalVol24hContracts = sumNumbers(markets, (m) =>
+          (typeof m?.volume_24h === "number" ? m.volume_24h : null)
+        );
+        return { totalOI, totalVolContracts, totalVol24hContracts };
+      }
+
+      function pickEventTickersForChart() {
+        if (!Array.isArray(lastEventMarkets) || lastEventMarkets.length === 0) return [];
+
+        // If user asked for Selected but hasn't picked a row yet, fall back to Default.
+        if (eventChartMode === "selected" && !selectedEventMarketTicker) {
+          eventChartMode = "default";
+        }
+
+        // Default view: show the top 2 markets by YES bid (fast + readable).
+        if (eventChartMode === "default") {
+          return [...lastEventMarkets]
+            .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+            .slice(0, 2)
+            .map((m) => (m.ticker || "").toUpperCase())
+            .filter(Boolean);
+        }
+
+        // Selected view: only the market the user clicked in the table.
+        if (eventChartMode === "selected" && selectedEventMarketTicker) {
+          return [selectedEventMarketTicker];
+        }
+
+        // Safety fallback
+        return [...lastEventMarkets]
+          .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+          .slice(0, 2)
+          .map((m) => (m.ticker || "").toUpperCase())
+          .filter(Boolean);
+      }
+
+      async function loadChartForMarketTickers(tickers) {
+        if (!Array.isArray(tickers) || tickers.length === 0) return;
+
+        hardDestroyChart();
+        const { start, end, interval } = await rangeToWindow(activeRange, tickers);
+
+        const url =
+          `${BASE}/markets/candlesticks` +
+          `?market_tickers=${encodeURIComponent(tickers.join(","))}` +
+          `&start_ts=${start}&end_ts=${end}&period_interval=${interval}` +
+          `&include_latest_before_start=true`;
+
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const markets = payload.markets || [];
+        if (!Array.isArray(markets) || markets.length === 0) {
+          throw new Error("No candlestick data returned for chart range.");
+        }
+
+        const byTicker = new Map();
+        for (const m of markets) byTicker.set((m.market_ticker || "").toUpperCase(), m);
+
+        const orderedMarkets = tickers
+          .map(t => byTicker.get((t || "").toUpperCase()))
+          .filter(Boolean);
+
+        const palette = ["#20c997", "#3b82f6", "#f97316", "#a855f7", "#ef4444", "#eab308"];
+
+        const datasets = orderedMarkets.map((m, idx) => {
+          const marketTicker = (m.market_ticker || "").toUpperCase();
+          const label = tickerToName.get(marketTicker) || marketTicker;
+          const data = toChartPoints(m.candlesticks);
+          const color = palette[idx % palette.length];
+
+          return {
+            label,
+            data,
+            borderColor: color,
+            backgroundColor: color + "22",
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointRadius: 0,
+            fill: true,
+          };
+        }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
+
+        chartWrap.style.display = "block";
+        chartMeta.textContent =
+          `Range: ${activeRange.toUpperCase()} • Interval: ${interval}m • Markets: ${prettyMarketsLine(tickers)}`;
+
+        renderLegendFromDatasets(datasets);
+
+        const canvas = document.getElementById("priceChart");
+        const existing = Chart.getChart ? Chart.getChart(canvas) : null;
+        if (existing) existing.destroy();
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // X-axis unit & formatting (match Kalshi-style labels by range)
+        const xUnit =
+          (activeRange === "live") ? "minute" :
+          (activeRange === "1d")   ? "hour"   :
+          (activeRange === "1w")   ? "day"    :
+          (activeRange === "1m")   ? "day"    : "month";
+
+        // Tick labels (include year only for long ranges when the span crosses years)
+        const startMs = start * 1000;
+        const endMs = end * 1000;
+        const crossesYears = (new Date(startMs).getFullYear() !== new Date(endMs).getFullYear());
+        const longRange = (activeRange === "1y" || activeRange === "all");
+        const showYear = longRange && crossesYears;
+
+        const tickFmt =
+          (activeRange === "live") ? "HH:mm"      :
+          (activeRange === "1d")   ? "HH:mm"      :
+          (activeRange === "1w")   ? "d MMM"      :
+          (activeRange === "1m")   ? "d MMM"      :
+          (activeRange === "1y")   ? (showYear ? "dd MMM yy" : "dd MMM") :
+                                     (showYear ? "dd MMM yy" : "MMM");
+
+        // Tooltip title
+        const tooltipFmt =
+          (activeRange === "live") ? "d MMM, HH:mm" :
+          (activeRange === "1d")   ? "d MMM, HH:mm" :
+          (activeRange === "1w")   ? "d MMM"        :
+          (activeRange === "1m")   ? "d MMM"        :
+          (activeRange === "1y")   ? (showYear ? "dd MMM yy" : "dd MMM") :
+                                     (showYear ? "dd MMM yy" : "MMM");
+
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            parsing: false,
+            animation: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+                callbacks: {
+                  title: (items) => {
+                    if (!items || !items.length) return "";
+                    const x = items[0].parsed?.x;
+                    if (!x) return "";
+                    // dateFns is provided by the date-fns CDN script above
+                    return (typeof dateFns !== "undefined")
+                      ? dateFns.format(new Date(x), tooltipFmt)
+                      : new Date(x).toLocaleString();
+                  },
+                  label: (ctx) => {
+                    const v = ctx.parsed?.y;
+                    const nm = ctx.dataset?.label || "";
+                    return `${nm}: ${typeof v === "number" ? v.toFixed(1) + "%" : "—"}`;
+                  }
+                }
+              }
+            },
+            interaction: { mode: "index", intersect: false },
+            scales: {
+              x: {
+                type: "time",
+                time: {
+                  unit: xUnit,
+                  displayFormats: {
+                    minute: "HH:mm",hour: "HH:mm",
+                    
+                    day: "d MMM",
+                    month: (showYear ? "dd MMM yy" : (activeRange === "1y" ? "dd MMM" : "MMM"))
+                  },
+                  tooltipFormat: tooltipFmt
+                },
+                grid: { color: "rgba(255,255,255,.06)" },
+                ticks: {
+                  color: "rgba(255,255,255,.70)",
+                  maxRotation: 0,
+                  autoSkip: true,
+                  maxTicksLimit:
+                    (activeRange === "live") ? 7 :
+                    (activeRange === "1d") ? 8 :
+                    (activeRange === "1w") ? 7 :
+                    (activeRange === "1m") ? 6 : 6,
+                  callback: (_value, index, ticks) => {
+                    // Use the underlying numeric tick value for consistent formatting.
+                    const raw = (ticks && ticks[index] && typeof ticks[index].value === "number")
+                      ? ticks[index].value
+                      : (typeof _value === "number" ? _value : Number(_value));
+
+                    if (!Number.isFinite(raw)) return "";
+
+                    const d = new Date(raw);
+
+                    // ✅ LIVE + 1D should be TIME-ONLY (no date), like Kalshi's own UI.
+                    if (activeRange === "live") {
+                      // show minute-level time (e.g., 3:41 PM)
+                      return new Intl.DateTimeFormat(undefined, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true
+                      }).format(d).replace(" ", "");
+                    }
+                    if (activeRange === "1d") {
+                      // show hour-only (e.g., 4PM)
+                      return new Intl.DateTimeFormat(undefined, {
+                        hour: "numeric",
+                        hour12: true
+                      }).format(d).replace(" ", "");
+                    }
+
+                    // Other ranges keep date-based labels
+                    try {
+                      if ((activeRange === "1y" || activeRange === "all") && crossesYears) {
+                        return (typeof dateFns !== "undefined" && dateFns.format)
+                          ? dateFns.format(d, "dd MMM yy")
+                          : d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" });
+                      }
+                      return (typeof dateFns !== "undefined" && dateFns.format)
+                        ? dateFns.format(d, tickFmt)
+                        : d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+                    } catch (_) {
+                      return d.toLocaleDateString();
+                    }
+                  }},
+                border: { color: "rgba(255,255,255,.12)" }
+              },
+              y: {
+                suggestedMin: 0,
+                suggestedMax: 100,
+                grid: { color: "rgba(255,255,255,.06)" },
+                ticks: { color: "rgba(255,255,255,.70)", callback: (v) => `${v}%` },
+                border: { color: "rgba(255,255,255,.12)" }
+              }
+            }
+          }
+        });
+      }
+
+      async function loadEventChart() {
+        const tickers = pickEventTickersForChart();
+        if (!tickers.length) return;
+        await loadChartForMarketTickers(tickers);
+      }
+
+      async function refreshActiveMarketSnapshot() {
+        if (!activeMarketTicker) return;
+        const ticker = activeMarketTicker;
+
+        const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const data = payload.market ?? payload;
+        if (!data || typeof data !== "object") return;
+
+        el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
+        el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
+        el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
+        el("volume").textContent = (data.volume ?? "—").toString();
+        metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
+        gridEl.style.display = "grid";
+
+        // ✅ Stats (single market)
+        statsBar.style.display = "flex";
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+
+        statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
+      }
+
+      async function refreshActiveEventList() {
+        if (!activeEventTicker) return;
+        const eventTicker = activeEventTicker;
+
+        activeEventSection = await fetchEventSection(eventTicker);
+
+        const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
+        const payload = await fetchJSON(url);
+        if (DEBUG) setDebug(payload);
+
+        const markets = payload.markets ?? [];
+        if (!Array.isArray(markets) || markets.length === 0) return;
+
+        lastEventMarkets = markets;
+
+        // keep current marketsExpanded state
+
+        // ✅ Totals like Kalshi headline (+ 24h)
+        const totals = computeEventTotals(markets);
+        statsBar.style.display = "flex";
+
+        volLabel.textContent = "VOLUME (TOTAL)";
+        statVol.textContent = formatUSD(totals.totalVolContracts);
+
+        vol24Label.textContent = "VOLUME (24H)";
+        statVol24.textContent = formatUSD(totals.totalVol24hContracts);
+
+        statOI.textContent = formatInt(totals.totalOI);
+
+        metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+
+        tickerToName.clear();
+        for (const m of markets) {
+          const tkr = (m.ticker || "").toUpperCase();
+          const nm = extractCandidateNameFromTitle(m.title, tkr);
+          tickerToName.set(tkr, nm);
+        }
+
+        // If selected ticker disappeared, fall back to default
+        if (selectedEventMarketTicker) {
+          const stillExists = markets.some(m => (m.ticker || "").toUpperCase() === selectedEventMarketTicker);
+          if (!stillExists) selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
+        }
+
+        renderMarketsList(markets);
+      }
+
+      async function loadMarket(tickerRaw) {
+        const ticker = (tickerRaw || "").trim().toUpperCase();
+        clearUI();
+        statusEl.textContent = "Loading market…";
+
+        try {
+          const url = `${BASE}/markets/${encodeURIComponent(ticker)}`;
+          const payload = await fetchJSON(url);
+          setDebug(payload);
+
+          const data = payload.market ?? payload;
+          if (payload && payload.error) throw new Error(payload.error.message || "Kalshi returned an error");
+          if (!data || typeof data !== "object" || (!("title" in data) && !("ticker" in data))) {
+            throw new Error("Unexpected response shape from proxy");
+          }
+
+          activeMode = "market";
+          if (eventTopTitleEl) { eventTopTitleEl.textContent = data.title || data.ticker || ticker; eventTopTitleEl.style.display = "block"; }
+          activeMarketTicker = (data.ticker || ticker).toUpperCase();
+
+          metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
+
+          el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
+          el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
+          el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
+          el("volume").textContent = (data.volume ?? "—").toString();
+
+          gridEl.style.display = "grid";
+          statusEl.textContent = "Loaded";
+        showWidgetHideSearch();
+          showWidgetHideSearch();
+
+          tickerToName.set(activeMarketTicker, data.title || activeMarketTicker);
+
+          // ✅ stats
+          statsBar.style.display = "flex";
+          volLabel.textContent = "VOLUME (TOTAL)";
+          statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+
+          vol24Label.textContent = "VOLUME (24H)";
+          statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+
+          statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
+
+          await loadChartForMarketTickers([activeMarketTicker]);
+
+        } catch (e) {
+          statusEl.textContent = "Error";
+        showSearchHideWidget();
+          errEl.textContent = `Couldn’t load that market.\n${e.message}`;
+        }
+      }
+
+      async function loadEvent(eventTickerRaw) {
+        const eventTicker = (eventTickerRaw || "").trim().toUpperCase();
+        clearUI();
+        statusEl.textContent = "Loading event…";
+
+        try {
+          activeMode = "event";
+          activeEventTicker = eventTicker;
+          activeEventSection = await fetchEventSection(eventTicker);
+
+          const eventTitle = await fetchEventTitle(eventTicker);
+          questionEl.textContent = eventTitle || "Event question unavailable";
+          questionEl.style.display = "block";
+          // VegasInsider header title
+          if (eventTopTitleEl) {
+            eventTopTitleEl.textContent = eventTitle || "";
+            eventTopTitleEl.style.display = eventTitle ? "block" : "none";
+          }
+
+          const url = `${BASE}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=200`;
+          const payload = await fetchJSON(url);
+          setDebug(payload);
+
+          const markets = payload.markets ?? [];
+          if (!Array.isArray(markets) || markets.length === 0) {
+            throw new Error("No markets found for that event ticker (or event ticker is wrong).");
+          }
+
+          lastEventMarkets = markets;
+
+        // keep current marketsExpanded state
+
+          // ✅ totals like Kalshi headline (+ 24h)
+          const totals = computeEventTotals(markets);
+          statsBar.style.display = "flex";
+
+          volLabel.textContent = "VOLUME (TOTAL)";
+          statVol.textContent = formatUSD(totals.totalVolContracts);
+
+          vol24Label.textContent = "VOLUME (24H)";
+          statVol24.textContent = formatUSD(totals.totalVol24hContracts);
+
+          statOI.textContent = formatInt(totals.totalOI);
+
+          metaEl.textContent = `Showing ${markets.length} markets for event ticker: ${eventTicker}`;
+
+          tickerToName.clear();
+          for (const m of markets) {
+            const tkr = (m.ticker || "").toUpperCase();
+            const nm = extractCandidateNameFromTitle(m.title, tkr);
+            tickerToName.set(tkr, nm);
+          }
+
+          // default view = default like Kalshi
+          eventChartMode = "default";
+          selectedEventMarketTicker = null;
+          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
+
+        marketsExpanded = false;
+        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; }
+
+          renderMarketsList(markets);
+          await loadEventChart();
+
+          statusEl.textContent = "Loaded";
+        showWidgetHideSearch();
+        } catch (e) {
+          statusEl.textContent = "Error";
+        showSearchHideWidget();
+          errEl.textContent = `Couldn’t load that event.\n${e.message}\n\nTip: event tickers look like KXPGATOUR-COCITPB26 (all caps).`;
+        }
+      }
+
+      function isProbablyEventTicker(s) {
+        const hyphens = (s.match(/-/g) || []).length;
+        return hyphens === 1; // event tickers like KXPGATOUR-COCITPB26
+      }
+
+      async function loadFromInput(raw) {
+        const value = (raw || "").trim().toUpperCase();
+        if (!value) return;
+
+        inputBox.value = value;
+
+        const newUrl = new URL(location.href);
+        if (isProbablyEventTicker(value)) {
+          newUrl.searchParams.delete("ticker");
+          newUrl.searchParams.set("event", value);
+          history.replaceState({}, "", newUrl);
+          await loadEvent(value);
+        } else {
+          newUrl.searchParams.delete("event");
+          newUrl.searchParams.set("ticker", value);
+          history.replaceState({}, "", newUrl);
+          await loadMarket(value);
+        }
+      }
+
+      inputBox.addEventListener("input", () => {
+        const start = inputBox.selectionStart;
+        const end = inputBox.selectionEnd;
+        const upper = inputBox.value.toUpperCase();
+        if (inputBox.value !== upper) {
+          inputBox.value = upper;
+          try { inputBox.setSelectionRange(start, end); } catch (_) {}
+        }
+      });
+
+      sortSelect.addEventListener("change", () => {
+        if (!lastEventMarkets.length) return;
+        renderMarketsList(lastEventMarkets);
+      });
+
+      if (toggleMarketsBtn) {
+        toggleMarketsBtn.addEventListener("click", () => {
+          if (!lastEventMarkets.length) return;
+          marketsExpanded = !marketsExpanded;
+          renderMarketsList(lastEventMarkets);
+        });
+      }
+
+      // range buttons
+      document.querySelectorAll("[data-range]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          activeRange = btn.getAttribute("data-range");
+          
+          updateRangeButtonsActive();
+          try {
+            if (activeMode === "event") await loadEventChart();
+            if (activeMode === "market" && activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
+          } catch (e) {
+            errEl.textContent = `Chart error:\n${e.message}`;
+          }
+        });
+
+    updateRangeButtonsActive();
+
+
+      });
+
+      // chart-mode buttons (default/selected/all)
+      document.querySelectorAll("[data-chartmode]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (activeMode !== "event") return;
+
+          const mode = btn.getAttribute("data-chartmode");
+          if (!mode) return;
+
+          // Selected = show the clicked row's market; Default = reset to the original (Top 2 by YES bid).
+          if (mode === "selected") {
+            if (!selectedEventMarketTicker) {
+              // nothing selected yet → keep Default
+              eventChartMode = "default";
+            } else {
+              eventChartMode = "selected";
+            }
+          } else {
+            eventChartMode = "default";
+          }
+
+          // Update button UI
+          document.querySelectorAll("[data-chartmode]").forEach((b) => b.classList.remove("isActive"));
+          document.querySelector(`[data-chartmode="${eventChartMode}"]`)?.classList.add("isActive");
+          updateSelectedModeAvailability();
+
+          // Reload chart for the chosen mode
+          const tickers = pickEventTickersForChart();
+          try {
+            await loadChartForMarketTickers(tickers);
+          } catch (e) {
+            errEl.textContent = `Chart error:\n${e.message}`;
+          }
+        });
+      });
+
+      function updateSelectedModeAvailability() {
+        const selBtn = document.getElementById("btnSelectedMode");
+        if (!selBtn) return;
+        if (selectedEventMarketTicker) selBtn.classList.remove("isDisabled");
+        else selBtn.classList.add("isDisabled");
+      }
+
+      // URL boot
+      const urlTicker = (params.get("ticker") || "").trim();
+      const urlEvent = (params.get("event") || "").trim();
+
+      if (urlEvent) {
+        const up = urlEvent.toUpperCase();
+        inputBox.value = up;
+        const u = new URL(location.href);
+        if (u.searchParams.get("event") !== up) {
+          u.searchParams.set("event", up);
+          history.replaceState({}, "", u);
+        }
+        loadEvent(up);
+      } else if (urlTicker) {
+        const up = urlTicker.toUpperCase();
+        inputBox.value = up;
+        const u = new URL(location.href);
+        if (u.searchParams.get("ticker") !== up) {
+          u.searchParams.set("ticker", up);
+          history.replaceState({}, "", u);
+        }
+        loadMarket(up);
+      }
+
+      el("loadBtn").addEventListener("click", () => loadFromInput(inputBox.value));
+      inputBox.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); loadFromInput(inputBox.value); }
+      });
+
+      // auto-refresh (preserve selected market in event mode)
+      setInterval(async () => {
+        if (document.hidden) return;
+
+        try {
+          statusEl.textContent = "Refreshing…";
+
+          if (activeMode === "market") {
+            await refreshActiveMarketSnapshot();
+            if (activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
+          } else if (activeMode === "event") {
+            await refreshActiveEventList();
+            await loadEventChart();
+          }
+
+          statusEl.textContent = "Loaded";
+        } catch (_) {
+          statusEl.textContent = "Loaded";
+        }
+      }, AUTO_REFRESH_MS);
+
+    // Download HTML button (downloads a "locked" copy: hides search + auto-loads the currently loaded ticker)
+    (function(){
+      const btn = document.getElementById("downloadHtmlBtn");
+      if(!btn) return;
+
+      function injectIntoHead(html, cssText){
+        if(!cssText) return html;
+        if(html.includes(cssText)) return html;
+        return html.replace(/<\/head>/i, cssText + "\n</head>");
+      }
+      function injectBeforeBodyClose(html, injectText){
+        if(!injectText) return html;
+        if(html.includes(injectText)) return html;
+        return html.replace(/<\/body>/i, injectText + "\n<script id="__dl_boot__">
+document.addEventListener("DOMContentLoaded", function(){
+  try{
+    var v = "KXMARMAD-26";
+    var sw = document.getElementById("searchWrap"); if(sw) sw.style.display = "none";
+    var ib = document.getElementById("inputBox"); if(ib) ib.value = v;
+    var card = document.getElementById("widgetCard"); if(card) card.style.display = "block";
+    if(typeof loadFromInput === "function"){ loadFromInput(v); }
+    else {
+      var lb = document.getElementById("loadBtn");
+      if(lb) lb.click();
+    }
+  }catch(e){ console.error(e); }
+});
+</script>
+</body>");
+      }
+
+      btn.addEventListener("click", async () => {
+        try{
+          // lock the last loaded thing (preferred) or the input value
+          const raw = (typeof activeMode !== "undefined" && activeMode === "event" && typeof activeEventTicker !== "undefined" && activeEventTicker)
+            ? activeEventTicker
+            : (typeof activeMode !== "undefined" && activeMode === "market" && typeof activeMarketTicker !== "undefined" && activeMarketTicker)
+              ? activeMarketTicker
+              : (document.getElementById("inputBox")?.value || "");
+
+          const locked = (raw || "").trim();
+          if(!locked){
+            alert("Enter a market ticker or event ticker first, then click Load.");
+            return;
+          }
+
+          if(location.protocol === "file:"){
+            alert("Download works best when this page is hosted (e.g., GitHub Pages). Please open the hosted URL, then click Download HTML.");
+            return;
+          }
+
+          // ✅ get the actual served HTML source (not the mutated DOM)
+          const res = await fetch(location.href, { cache: "no-store" });
+          const src0 = await res.text();
+
+          // hide search bar in downloaded copy
+          const cssInject = `<style id="__dl_hide_search__">#searchWrap{display:none!important;}</style>`;
+
+          // auto-load the locked ticker in downloaded copy
+          // NOTE: escape the closing script tag in the injected snippet so we don't break this script tag.
+          const bootInject =
+`<script id="__dl_boot__">
+document.addEventListener("DOMContentLoaded", function(){
+  try{
+    var v = ${JSON.stringify(locked)};
+    var sw = document.getElementById("searchWrap"); if(sw) sw.style.display = "none";
+    var ib = document.getElementById("inputBox"); if(ib) ib.value = v;
+    var card = document.getElementById("widgetCard"); if(card) card.style.display = "block";
+    if(typeof loadFromInput === "function"){ loadFromInput(v); }
+    else {
+      var lb = document.getElementById("loadBtn");
+      if(lb) lb.click();
+    }
+  }catch(e){ console.error(e); }
+});
+<\/script>`;
+
+          let out = src0;
+          out = injectIntoHead(out, cssInject);
+          out = injectBeforeBodyClose(out, bootInject);
+
+          const safe = locked.replace(/[^A-Z0-9_-]+/g, "_");
+          const fname = "kalshi_widget_vegasinsider_" + safe + ".html";
+
+          const blob = new Blob([out], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fname;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+        }catch(e){
+          console.error("Download failed", e);
+          alert("Download failed. Open DevTools → Console for details.");
+        }
+      });
+    })();
+;
+
+    </script>
+  </body>
+</html>
