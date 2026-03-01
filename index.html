@@ -744,10 +744,6 @@
       // EVENT chart behavior
       let eventChartMode = "default"; // "default" | "selected" | "all"
       let selectedEventMarketTicker = null;
-          if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
-
-        marketsExpanded = false;
-        if (toggleMarketsBtn) { toggleMarketsBtn.textContent = 'Show all'; toggleMarketsBtn.classList.remove('isExpanded'); toggleMarketsBtn.style.display = 'none'; } // when user clicks a row in event mode
 
       const tickerToName = new Map();
       // Cache for market open timestamps (unix seconds)
@@ -1666,7 +1662,7 @@
           activeRange = btn.getAttribute("data-range");
           
           updateRangeButtonsActive();
-try {
+          try {
             if (activeMode === "event") await loadEventChart();
             if (activeMode === "market" && activeMarketTicker) await loadChartForMarketTickers([activeMarketTicker]);
           } catch (e) {
@@ -1674,7 +1670,8 @@ try {
           }
         });
 
-      updateRangeButtonsActive();
+    updateRangeButtonsActive();
+
 
       });
 
@@ -1704,9 +1701,9 @@ try {
           updateSelectedModeAvailability();
 
           // Reload chart for the chosen mode
-          activeMarketTickersForChart = pickEventTickersForChart();
+          const tickers = pickEventTickersForChart();
           try {
-            await loadChartForMarketTickers(activeMarketTickersForChart);
+            await loadChartForMarketTickers(tickers);
           } catch (e) {
             errEl.textContent = `Chart error:\n${e.message}`;
           }
