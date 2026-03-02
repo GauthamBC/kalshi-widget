@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- v34: patched (CSS placeholder + rgba alpha normalization) -->
+
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -569,6 +571,12 @@ body.lightTheme #widgetCard .tickerCell{
   color: rgba(0,0,0,.72) !important;
 }
 
+
+/* Light theme: make search placeholder readable */
+body.lightTheme #searchWrap #inputBox::placeholder{ color: rgba(0,0,0,.45) !important; }
+body.lightTheme #searchWrap #inputBox::-webkit-input-placeholder{ color: rgba(0,0,0,.45) !important; }
+body.lightTheme #searchWrap #inputBox:-ms-input-placeholder{ color: rgba(0,0,0,.45) !important; }
+body.lightTheme #searchWrap #inputBox::-ms-input-placeholder{ color: rgba(0,0,0,.45) !important; }
 </style>
   <style id="__brand_switcher_css__">
   /* Brand switching affects ONLY the widget (NOT the search header/inputs). */
