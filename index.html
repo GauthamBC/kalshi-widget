@@ -102,9 +102,27 @@
       padding:8px 12px; border-radius:999px; background:rgba(var(--brand-accent-rgb), .12);
       border:1px solid rgba(var(--brand-accent-rgb), .28); color:var(--vi-text); font-size:12px;
     }
-    .brandPill{ display:flex; align-items:center; justify-content:center; gap:12px; height:44px; padding:10px 16px; }
-    .viLogo{ height:24px; width:auto; display:block; background:rgba(255,255,255,.92); padding:6px 8px; border-radius:10px; }
-    .brandText{ font-weight:800; letter-spacing:.2px; }
+    .brandPill{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:0;
+      min-height:44px;
+      padding:10px 14px;
+    }
+    .viLogo{
+      height:28px;
+      width:auto;
+      max-width:180px;
+      display:block;
+      object-fit:contain;
+      background:rgba(255,255,255,.92);
+      padding:6px 10px;
+      border-radius:10px;
+    }
+    .brandText{
+      display:none;
+    }
 
     .headerRow{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:8px; }
     .eventTopTitle{
@@ -251,7 +269,6 @@
       <div class="eventTopTitle" id="eventTopTitle"><span id="eventTopTitleText"></span><span class="eventTopPct" id="eventTopPct" style="display:none;"></span></div>
       <div class="pill brandPill">
         <img class="viLogo" id="brandLogo" src="https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png" alt="VegasInsider" />
-        <span class="brandText">Kalshi Widget</span>
       </div>
     </div>
 
