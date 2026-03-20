@@ -1,10 +1,7 @@
 <!doctype html>
-<!-- v34: patched (CSS placeholder + rgba alpha normalization) -->
-
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Kalshi Market Widget</title>
 
     <!-- Chart.js (CDN) -->
@@ -284,10 +281,10 @@
          Palette source: Branded Table Generator (VegasInsider)
          ============================ */
       :root{
-        --vi-yellow:#F2C23A;
-        --vi-yellow-2:#D9A72A;
-        --vi-yellow-soft: rgba(242, 194, 58, .18);
-        --vi-yellow-soft-2: rgba(242, 194, 58, .10);
+        --vi-yellow:#2F7DF3;
+        --vi-yellow-2:#0159D1;
+        --vi-yellow-soft: rgba(47,125,243, .18);
+        --vi-yellow-soft-2: rgba(47,125,243, .10);
         --vi-black:#111111;
         --vi-bg:#0b0b0b;
         --vi-panel:#111111;
@@ -303,13 +300,13 @@
       .card{
         background: var(--vi-panel) !important;
         box-shadow: 0 10px 28px rgba(0,0,0,.45) !important;
-        border: 1px solid rgba(242, 194, 58, .18) !important;
+        border: 1px solid rgba(47, 125, 243, .18) !important;
       }
 
       /* Top pills */
       .pill{
-        background: rgba(242, 194, 58, .14) !important;
-        border: 1px solid rgba(242, 194, 58, .35) !important;
+        background: rgba(47, 125, 243, .14) !important;
+        border: 1px solid rgba(47, 125, 243, .35) !important;
         color: var(--vi-text) !important;
       }
 
@@ -319,7 +316,7 @@
       .muted{ color: var(--vi-muted) !important; }
       .err{ color: #ff6b6b !important; }
 
-      code{ background: rgba(242, 194, 58, .14) !important; color: var(--vi-text) !important; border:1px solid rgba(242, 194, 58, .22) !important; }
+      code{ background: rgba(47, 125, 243, .14) !important; color: var(--vi-text) !important; border:1px solid rgba(47, 125, 243, .22) !important; }
 
       /* Inputs + primary buttons */
       input{
@@ -350,8 +347,8 @@
 
       /* Stats tiles: VegasInsider yellow fields */
       .statTile{
-        background: linear-gradient(180deg, rgba(242, 194, 58, .98), rgba(242, 194, 58, .88)) !important;
-        border: 1px solid rgba(242, 194, 58, .95) !important;
+        background: linear-gradient(180deg, rgba(47, 125, 243, .98), rgba(47, 125, 243, .88)) !important;
+        border: 1px solid rgba(47, 125, 243, .95) !important;
         color: #0b0b0b !important;
       }
       .statLabel{
@@ -387,8 +384,8 @@
       /* Market list header */
       .listTitle{ color: var(--vi-text) !important; }
       .tag{
-        background: rgba(242, 194, 58, .14) !important;
-        border: 1px solid rgba(242, 194, 58, .25) !important;
+        background: rgba(47, 125, 243, .14) !important;
+        border: 1px solid rgba(47, 125, 243, .25) !important;
         color: var(--vi-text) !important;
       }
       .smallSelect{
@@ -629,9 +626,9 @@ body.lightTheme #searchWrap #inputBox::-ms-input-placeholder{ color: rgba(0,0,0,
 
   /* --- Widget-scoped brand variables (default = VegasInsider) --- */
   #widgetCard{
-    --brand-accent: #F2C23A;
-    --brand-accent-2: #D9A72A;
-    --brand-accent-rgb: 242,194,58;
+    --brand-accent: #2F7DF3;
+    --brand-accent-2: #0159D1;
+    --brand-accent-rgb: 47,125,243;
 
     /* Map to existing widget variables used throughout the widget CSS */
     --vi-yellow: var(--brand-accent);
@@ -1012,7 +1009,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
   
   <body>
     <!-- Search (shown before load) -->
-    <div class="searchWrap" id="searchWrap">
+    <div class="searchWrap" id="searchWrap" style="display: block;">
       <div class="searchInner">
         <div class="searchTitleRow">
         <div class="searchTitle" id="title">Enter a market ticker or event ticker</div>
@@ -1037,7 +1034,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       </div>
         <div class="row searchInputRow" style="margin-top:10px;">
           <div style="flex:1; min-width: 260px;">
-            <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)" />
+            <input id="inputBox" placeholder="Market ticker OR Event ticker (e.g. KXFEDCHAIRNOM-29)">
           </div>
           <div class="loadWrap">
             <button id="loadBtn">Load</button>
@@ -1050,39 +1047,39 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
     </div>
 
     <!-- Widget (shown after load) -->
-    <div class="card" id="widgetCard" style="display:none;">
+    <div class="card" id="widgetCard" style="display: block; --brand-accent: #2F7DF3; --brand-accent-2: #0159D1; --brand-accent-rgb: 47,125,243; --vi-yellow:#2F7DF3; --vi-yellow-2:#0159D1; --vi-yellow-soft: rgba(47,125,243, .18); --vi-yellow-soft-2: rgba(47,125,243, .10);">
 
             <div class="row headerRow">
-        <div class="eventTopTitle" id="eventTopTitle" style="display:none;"><span id="eventTopTitleText"></span><span class="eventTopPct" id="eventTopPct" style="display:none;"></span></div>
+        <div class="eventTopTitle" id="eventTopTitle" style="display: block;"><span id="eventTopTitleText">Which party will win the U.S. House?</span><span class="eventTopPct" id="eventTopPct" style="display:none;"></span></div>
         <div class="pill brandPill">
-          <img class="viLogo" id="brandLogo" src="https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png" alt="VegasInsider" />
+          <img class="viLogo" id="brandLogo" src="https://i.postimg.cc/PrcJnQtK/RG-logo-Fn.png" alt="RotoGrinders">
           <span class="brandText">Kalshi Widget</span>
         </div>
       </div>
-      <div class="pill" id="status" style="display:none;">Idle</div>
+      <div class="pill" id="status" style="display:none;">Loaded</div>
 
 
-      <div class="muted" id="meta"></div>
+      <div class="muted" id="meta">Showing 2 markets for this event ticker</div>
 
       <!-- Event question above the chart -->
-      <div class="question" id="question"></div>
+      <div class="question" id="question" style="display: block;">Which party will win the U.S. House?</div>
 
       <!-- Stats bar -->
-      <div class="row statsBar" id="statsBar">
+      <div class="row statsBar" id="statsBar" style="display: flex;">
         <div class="statTile hasTip" id="tileVol" data-tooltip="Volume (Total): All contracts traded since this market opened (lifetime activity).">
           <div class="statLabel" id="volLabel">VOLUME (TOTAL)</div>
-          <div class="statValue" id="statVol">—</div>
+          <div class="statValue" id="statVol">US$7,000,627</div>
         </div>
 
         <!-- ✅ NEW: Volume 24h tile (between total volume + open interest) -->
         <div class="statTile hasTip" id="tileVol24" data-tooltip="Volume (24h): Contracts traded in the last 24 hours (recent activity).">
           <div class="statLabel" id="vol24Label">VOLUME (24H)</div>
-          <div class="statValue" id="statVol24">—</div>
+          <div class="statValue" id="statVol24">US$14,360</div>
         </div>
 
         <div class="statTile hasTip" id="tileOI" data-tooltip="Open Interest: Contracts currently being held right now (active positions still open). Measured in contracts (not dollars).">
           <div class="statLabel">OPEN INTEREST</div>
-          <div class="statValue" id="statOI">—</div>
+          <div class="statValue" id="statOI">4,354,051</div>
         </div>
 
         <div class="statTile" id="tileLiq" style="display:none;">
@@ -1096,40 +1093,40 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       </div>
 
       <!-- 24H YES/NO notional (selected market) -->
-      <div class="notionalRow" id="notionalRow" style="display:none;">
+      <div class="notionalRow" id="notionalRow" style="display: flex;">
         <div class="notionalPill hasTip splitTip" id="notionalPill" data-tooltip="Numbers update in real time. This split is trade-based, so it may differ slightly from the headline 24H volume due to timing/rounding.">
-          <span class="notionalLabel" id="notionalLabel">24H Volume Split (Selected market):</span>
-          <span class="notionalYes" id="notionalYes">YES —</span>
+          <span class="notionalLabel" id="notionalLabel">24H Volume Split (All markets):</span>
+          <span class="notionalYes" id="notionalYes">YES US$12,470</span>
           <span class="notionalSep">•</span>
-          <span class="notionalNo" id="notionalNo">NO —</span>
+          <span class="notionalNo" id="notionalNo">NO US$1,890</span>
         </div>
       </div>
 
       <!-- Name legend -->
-      <div class="legendRow" id="legendRow"></div>
+      <div class="legendRow" id="legendRow" style="display: flex;"><div class="legendItem"><span class="dot" style="background: rgb(32, 201, 151);"></span><span>D</span><span class="legendPct">84%</span></div><div class="legendItem"><span class="dot" style="background: rgb(59, 130, 246);"></span><span>R</span><span class="legendPct">16%</span></div></div>
 
       <!-- Chart -->
-      <div class="chartWrap" id="chartWrap">
+      <div class="chartWrap" id="chartWrap" style="display: block;">
         <div class="chartHeader">
           <div class="chartTitle" id="chartTitle"><span class="chanceLabel">Chance</span><span class="chancePct" id="chancePct" style="display:none;"></span></div>
           <div class="btnGroup">
             <button class="btnSmall" data-range="live">LIVE</button>
 
-            <button class="btnSmall" data-range="1d">1D</button>
+            <button class="btnSmall active" data-range="1d">1D</button>
             <button class="btnSmall" data-range="1w">1W</button>
             <button class="btnSmall" data-range="1m">1M</button>
             <button class="btnSmall" data-range="1y">1Y</button>
             <button class="btnSmall" data-range="all">ALL</button>
           </div>
           <div class="btnGroup">
-            <button class="btnSmall" data-chartmode="selected" id="btnSelectedMode">Selected</button>
+            <button class="btnSmall isDisabled" data-chartmode="selected" id="btnSelectedMode">Selected</button>
             <button class="btnSmall isActive" data-chartmode="default" id="btnDefaultMode">Default</button>
           </div>
         </div>
 
         <div class="chartBox">
-          <canvas id="priceChart"></canvas>
-          <div class="chartMetaDark" id="chartMeta"></div>
+          <canvas id="priceChart" style="box-sizing: border-box; display: block; height: 384px; width: 954px;" width="1432" height="576"></canvas>
+          <div class="chartMetaDark" id="chartMeta">Range: 1D • Interval: 60m • Markets: D , R</div>
         </div>
       </div>
 
@@ -1154,12 +1151,12 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       </div>
 
       <!-- Event markets list -->
-      <div class="listWrap" id="listWrap">
+      <div class="listWrap" id="listWrap" style="display: block;">
         <div class="listHeader">
-          <div class="listTitle" id="listTitle">Markets</div>
+          <div class="listTitle" id="listTitle">Politics</div>
           <div class="row">
-            <span class="tag" id="countTag">0 markets</span>
-            <button class="smallSelect toggleBtn" id="toggleMarketsBtn" type="button" title="Expand/collapse the markets list" style="cursor:pointer;">Show all</button>
+            <span class="tag" id="countTag">Top 2 of 2</span>
+            <button class="smallSelect toggleBtn" id="toggleMarketsBtn" type="button" title="Expand/collapse the markets list" style="cursor: pointer; display: none;">Show all</button>
             <select class="smallSelect" id="sortSelect" title="Sort markets">
               <option value="yes_desc">Sort: YES bid (high → low)</option>
               <option value="yes_asc">Sort: YES bid (low → high)</option>
@@ -1179,7 +1176,19 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
               <th style="width:12%;">Ticker</th>
             </tr>
           </thead>
-          <tbody id="marketsTbody"></tbody>
+          <tbody id="marketsTbody"><tr class="clickable" data-ticker="CONTROLH-2026-D">
+            <td>Will Democrats win the House in 2026?</td>
+            <td>83¢ / 84¢</td>
+            <td>16¢ / 17¢</td>
+            <td>3407365</td>
+            <td class="tickerCell">CONTROLH-2026-D</td>
+          </tr><tr class="clickable" data-ticker="CONTROLH-2026-R">
+            <td>Will Republicans win the House in 2026?</td>
+            <td>15¢ / 16¢</td>
+            <td>84¢ / 85¢</td>
+            <td>3593262</td>
+            <td class="tickerCell">CONTROLH-2026-R</td>
+          </tr></tbody>
         </table>
 
         <div class="muted" style="margin-top:8px;">
@@ -1188,7 +1197,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       </div>
 
       <div class="err" id="error"></div>
-      <div class="debug" id="debugBox"></div>
+      <div class="debug" id="debugBox" style="display: none;"></div>
 </div>
 
     <script>
@@ -1420,17 +1429,73 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       }
 
       function n(x) {
-        return (typeof x === "number" && !Number.isNaN(x)) ? x : null;
+        if (x === null || x === undefined || x === "") return null;
+        const v = Number(x);
+        return Number.isFinite(v) ? v : null;
+      }
+
+      function dollarsToCents(x) {
+        const v = n(x);
+        return v === null ? null : Math.round(v * 100);
+      }
+
+      function fpToNumber(x) {
+        return n(x);
+      }
+
+      function getYesBid(m) {
+        return n(m?.yes_bid) ?? dollarsToCents(m?.yes_bid_dollars);
+      }
+
+      function getYesAsk(m) {
+        return n(m?.yes_ask) ?? dollarsToCents(m?.yes_ask_dollars);
+      }
+
+      function getNoBid(m) {
+        return n(m?.no_bid) ?? dollarsToCents(m?.no_bid_dollars);
+      }
+
+      function getNoAsk(m) {
+        return n(m?.no_ask) ?? dollarsToCents(m?.no_ask_dollars);
+      }
+
+      function getLastPrice(m) {
+        return n(m?.last_price) ?? dollarsToCents(m?.last_price_dollars);
+      }
+
+      function getVolume(m) {
+        return n(m?.volume) ?? fpToNumber(m?.volume_fp);
+      }
+
+      function getVolume24h(m) {
+        return n(m?.volume_24h) ?? fpToNumber(m?.volume_24h_fp);
+      }
+
+      function getOpenInterest(m) {
+        return n(m?.open_interest) ?? fpToNumber(m?.open_interest_fp);
+      }
+
+      function getTradeCount(tr) {
+        return n(tr?.count) ?? n(tr?.count_fp) ?? 0;
+      }
+
+      function getChartClose(c) {
+        const direct = n(c?.price?.close);
+        if (direct !== null) return direct;
+        const dollars = n(c?.price?.close_dollars);
+        return dollars === null ? null : dollars * 100;
       }
 
       function formatInt(x) {
-        if (typeof x !== "number" || Number.isNaN(x)) return "—";
-        return x.toLocaleString();
+        const v = n(x);
+        if (v === null) return "—";
+        return Math.round(v).toLocaleString();
       }
 
       function formatUSD(x) {
-        if (typeof x !== "number" || Number.isNaN(x)) return "—";
-        return x.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+        const v = n(x);
+        if (v === null) return "—";
+        return v.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
       }
 
       function extractCandidateNameFromTitle(title, fallbackTicker) {
@@ -1443,8 +1508,14 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
       function sortMarkets(markets, mode) {
         const m = [...markets];
-        const yesBid = (o) => (typeof o.yes_bid === "number" ? o.yes_bid : -Infinity);
-        const vol = (o) => (typeof o.volume === "number" ? o.volume : -Infinity);
+        const yesBid = (o) => {
+          const v = getYesBid(o);
+          return v === null ? -Infinity : v;
+        };
+        const vol = (o) => {
+          const v = getVolume(o);
+          return v === null ? -Infinity : v;
+        };
         const title = (o) => (o.title || "").toLowerCase();
 
         switch (mode) {
@@ -1477,7 +1548,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         marketsTbody.innerHTML = "";
 
         for (const mk of display) {
-          const tkr = (mk.ticker || "").toUpperCase();
+          const tkr = (mk.market_ticker || mk.ticker || "").toUpperCase();
 
           const tr = document.createElement("tr");
           tr.className = "clickable";
@@ -1502,15 +1573,15 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
             }
           });
 
-          const yes = `${fmtCentsOrNull(n(mk.yes_bid))} / ${fmtCentsOrNull(n(mk.yes_ask))}`;
-          const no  = `${fmtCentsOrNull(n(mk.no_bid))} / ${fmtCentsOrNull(n(mk.no_ask))}`;
+          const yes = `${fmtCentsOrNull(getYesBid(mk))} / ${fmtCentsOrNull(getYesAsk(mk))}`;
+          const no  = `${fmtCentsOrNull(getNoBid(mk))} / ${fmtCentsOrNull(getNoAsk(mk))}`;
 
           tr.innerHTML = `
             <td>${mk.title || "—"}</td>
             <td>${yes}</td>
             <td>${no}</td>
-            <td>${(mk.volume ?? "—").toString()}</td>
-            <td class="tickerCell">${mk.ticker || "—"}</td>
+            <td>${(getVolume(mk) ?? "—").toString()}</td>
+            <td class="tickerCell">${mk.market_ticker || mk.ticker || "—"}</td>
           `;
           marketsTbody.appendChild(tr);
         }
@@ -1581,7 +1652,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
           const trades = Array.isArray(payload?.trades) ? payload.trades : [];
           for (const tr of trades){
-            const c = Number(tr?.count ?? 0);
+            const c = getTradeCount(tr);
             if (!Number.isFinite(c) || c <= 0) continue;
 
             const side = String(tr?.taker_side || "").toLowerCase();
@@ -1644,20 +1715,17 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         const t = (ticker || "").toUpperCase();
         if (!t) return null;
 
-        // prefer cached
         const cached = marketSummaryCache.get(t);
         if (cached) return cached;
 
-        // try from lastEventMarkets list (event endpoint usually includes these fields)
         const fromList = Array.isArray(lastEventMarkets)
-          ? lastEventMarkets.find(m => (m.ticker || "").toUpperCase() === t)
+          ? lastEventMarkets.find(m => ((m.market_ticker || m.ticker || "").toUpperCase()) === t)
           : null;
 
-        const vol = (fromList && typeof fromList.volume === "number") ? fromList.volume : null;
-        const vol24 = (fromList && typeof fromList.volume_24h === "number") ? fromList.volume_24h : null;
-        const oi = (fromList && typeof fromList.open_interest === "number") ? fromList.open_interest : null;
+        const vol = fromList ? getVolume(fromList) : null;
+        const vol24 = fromList ? getVolume24h(fromList) : null;
+        const oi = fromList ? getOpenInterest(fromList) : null;
 
-        // if any missing, fetch full market
         if (vol != null && vol24 != null && oi != null){
           const out = { volume: vol, volume_24h: vol24, open_interest: oi };
           marketSummaryCache.set(t, out);
@@ -1668,9 +1736,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
           const payload = await fetchJSON(`${BASE}/markets/${encodeURIComponent(t)}`);
           const mk = payload.market ?? payload;
           const out = {
-            volume: (typeof mk?.volume === "number") ? mk.volume : vol,
-            volume_24h: (typeof mk?.volume_24h === "number") ? mk.volume_24h : vol24,
-            open_interest: (typeof mk?.open_interest === "number") ? mk.open_interest : oi
+            volume: getVolume(mk) ?? vol,
+            volume_24h: getVolume24h(mk) ?? vol24,
+            open_interest: getOpenInterest(mk) ?? oi
           };
           marketSummaryCache.set(t, out);
           return out;
@@ -1698,12 +1766,12 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         if (!s) { applyEventTopTilesDefault(); return; }
 
         volLabel.textContent = "VOLUME (TOTAL)";
-        statVol.textContent = formatUSD(typeof s.volume === "number" ? s.volume : NaN);
+        statVol.textContent = formatUSD(s?.volume);
 
         vol24Label.textContent = "VOLUME (24H)";
-        statVol24.textContent = formatUSD(typeof s.volume_24h === "number" ? s.volume_24h : NaN);
+        statVol24.textContent = formatUSD(s?.volume_24h);
 
-        statOI.textContent = formatInt(typeof s.open_interest === "number" ? s.open_interest : NaN);
+        statOI.textContent = formatInt(s?.open_interest);
       }
 
       async function updateEventTopTiles(){
@@ -1765,9 +1833,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       function toChartPoints(candles) {
         const pts = [];
         for (const c of (candles || [])) {
-          const ts = c.end_period_ts;
-          const close = c?.price?.close;
-          if (typeof ts === "number" && typeof close === "number") {
+          const ts = n(c?.end_period_ts);
+          const close = getChartClose(c);
+          if (ts !== null && close !== null) {
             pts.push({ x: ts * 1000, y: close });
           }
         }
@@ -1776,9 +1844,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
       function sumNumbers(arr, getter) {
         let s = 0;
-        for (const x of arr) {
-          const v = getter(x);
-          if (typeof v === "number" && !Number.isNaN(v)) s += v;
+        for (const x of (arr || [])) {
+          const v = n(getter(x));
+          if (v !== null) s += v;
         }
         return s;
       }
@@ -1982,15 +2050,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
       // volume 24h = sum of market.volume_24h
       // open interest = sum of market.open_interest
       function computeEventTotals(markets) {
-        const totalOI = sumNumbers(markets, (m) =>
-          (typeof m?.open_interest === "number" ? m.open_interest : null)
-        );
-        const totalVolContracts = sumNumbers(markets, (m) =>
-          (typeof m?.volume === "number" ? m.volume : null)
-        );
-        const totalVol24hContracts = sumNumbers(markets, (m) =>
-          (typeof m?.volume_24h === "number" ? m.volume_24h : null)
-        );
+        const totalOI = sumNumbers(markets, (m) => getOpenInterest(m));
+        const totalVolContracts = sumNumbers(markets, (m) => getVolume(m));
+        const totalVol24hContracts = sumNumbers(markets, (m) => getVolume24h(m));
         return { totalOI, totalVolContracts, totalVol24hContracts };
       }
 
@@ -2005,9 +2067,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         // Default view: show the top 2 markets by YES bid (fast + readable).
         if (eventChartMode === "default") {
           return [...lastEventMarkets]
-            .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+            .sort((a, b) => (getYesBid(b) ?? -1) - (getYesBid(a) ?? -1))
             .slice(0, 2)
-            .map((m) => (m.ticker || "").toUpperCase())
+            .map((m) => (m.market_ticker || m.ticker || "").toUpperCase())
             .filter(Boolean);
         }
 
@@ -2018,9 +2080,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
         // Safety fallback
         return [...lastEventMarkets]
-          .sort((a, b) => (b.yes_bid ?? -1) - (a.yes_bid ?? -1))
+          .sort((a, b) => (getYesBid(b) ?? -1) - (getYesBid(a) ?? -1))
           .slice(0, 2)
-          .map((m) => (m.ticker || "").toUpperCase())
+          .map((m) => (m.market_ticker || m.ticker || "").toUpperCase())
           .filter(Boolean);
       }
 
@@ -2039,7 +2101,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         const payload = await fetchJSON(url);
         if (DEBUG) setDebug(payload);
 
-        const markets = payload.markets || [];
+        const markets = payload.markets || payload.market_candlesticks || [];
         if (!Array.isArray(markets) || markets.length === 0) {
           throw new Error("No candlestick data returned for chart range.");
         }
@@ -2070,6 +2132,10 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
             fill: true,
           };
         }).filter(ds => Array.isArray(ds.data) && ds.data.length > 0);
+
+        if (!datasets.length) {
+          throw new Error("Candlestick response returned no usable numeric points.");
+        }
 
         chartWrap.style.display = "block";
         chartMeta.textContent =
@@ -2243,22 +2309,22 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
         const data = payload.market ?? payload;
         if (!data || typeof data !== "object") return;
 
-        el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
-        el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
-        el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
-        el("volume").textContent = (data.volume ?? "—").toString();
+        el("yesBidAsk").textContent = `${fmtCentsOrNull(getYesBid(data))} / ${fmtCentsOrNull(getYesAsk(data))}`;
+        el("noBidAsk").textContent  = `${fmtCentsOrNull(getNoBid(data))} / ${fmtCentsOrNull(getNoAsk(data))}`;
+        el("lastPrice").textContent = fmtCentsOrNull(getLastPrice(data));
+        el("volume").textContent = (getVolume(data) ?? "—").toString();
         metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
         gridEl.style.display = "grid";
 
         // ✅ Stats (single market)
         statsBar.style.display = "flex";
         volLabel.textContent = "VOLUME (TOTAL)";
-        statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+        statVol.textContent = formatUSD(getVolume(data));
 
         vol24Label.textContent = "VOLUME (24H)";
-        statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+        statVol24.textContent = formatUSD(getVolume24h(data));
 
-        statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
+        statOI.textContent = formatInt(getOpenInterest(data));
 
 
         await updateNotionalPillForTicker(ticker, "market");
@@ -2292,14 +2358,14 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
         tickerToName.clear();
         for (const m of markets) {
-          const tkr = (m.ticker || "").toUpperCase();
+          const tkr = (m.market_ticker || m.ticker || "").toUpperCase();
           const nm = extractCandidateNameFromTitle(m.title, tkr);
           tickerToName.set(tkr, nm);
         }
 
         // If selected ticker disappeared, fall back to default
         if (selectedEventMarketTicker) {
-          const stillExists = markets.some(m => (m.ticker || "").toUpperCase() === selectedEventMarketTicker);
+          const stillExists = markets.some(m => ((m.market_ticker || m.ticker || "").toUpperCase()) === selectedEventMarketTicker);
           if (!stillExists) selectedEventMarketTicker = null;
           if (typeof updateSelectedModeAvailability === "function") updateSelectedModeAvailability();
 
@@ -2335,10 +2401,10 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
           metaEl.textContent = `Ticker: ${data.ticker || ticker} • Status: ${data.status || "—"} • Closes: ${data.close_time || "—"}`;
 
-          el("yesBidAsk").textContent = `${fmtCentsOrNull(n(data.yes_bid))} / ${fmtCentsOrNull(n(data.yes_ask))}`;
-          el("noBidAsk").textContent  = `${fmtCentsOrNull(n(data.no_bid))} / ${fmtCentsOrNull(n(data.no_ask))}`;
-          el("lastPrice").textContent = fmtCentsOrNull(n(data.last_price));
-          el("volume").textContent = (data.volume ?? "—").toString();
+          el("yesBidAsk").textContent = `${fmtCentsOrNull(getYesBid(data))} / ${fmtCentsOrNull(getYesAsk(data))}`;
+          el("noBidAsk").textContent  = `${fmtCentsOrNull(getNoBid(data))} / ${fmtCentsOrNull(getNoAsk(data))}`;
+          el("lastPrice").textContent = fmtCentsOrNull(getLastPrice(data));
+          el("volume").textContent = (getVolume(data) ?? "—").toString();
 
           gridEl.style.display = "grid";
           statusEl.textContent = "Loaded";
@@ -2350,12 +2416,12 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
           // ✅ stats
           statsBar.style.display = "flex";
           volLabel.textContent = "VOLUME (TOTAL)";
-          statVol.textContent = formatUSD(typeof data.volume === "number" ? data.volume : NaN);
+          statVol.textContent = formatUSD(getVolume(data));
 
           vol24Label.textContent = "VOLUME (24H)";
-          statVol24.textContent = formatUSD(typeof data.volume_24h === "number" ? data.volume_24h : NaN);
+          statVol24.textContent = formatUSD(getVolume24h(data));
 
-          statOI.textContent = formatInt(typeof data.open_interest === "number" ? data.open_interest : NaN);
+          statOI.textContent = formatInt(getOpenInterest(data));
 
           await loadChartForMarketTickers([activeMarketTicker]);
 
@@ -2420,7 +2486,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
           tickerToName.clear();
           for (const m of markets) {
-            const tkr = (m.ticker || "").toUpperCase();
+            const tkr = (m.market_ticker || m.ticker || "").toUpperCase();
             const nm = extractCandidateNameFromTitle(m.title, tkr);
             tickerToName.set(tkr, nm);
           }
@@ -2450,7 +2516,7 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
       function isProbablyEventTicker(s) {
         const hyphens = (s.match(/-/g) || []).length;
-        return hyphens === 1; // event tickers like KXPGATOUR-COCITPB26
+        return hyphens === 1; // retained only as a loose helper
       }
 
       async function loadFromInput(raw) {
@@ -2459,18 +2525,25 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
 
         inputBox.value = value;
 
+        try {
+          const eventProbeUrl = `${BASE}/markets?event_ticker=${encodeURIComponent(value)}&limit=2`;
+          const eventPayload = await fetchJSON(eventProbeUrl);
+          const eventMarkets = eventPayload?.markets ?? [];
+          if (Array.isArray(eventMarkets) && eventMarkets.length) {
+            const newUrl = new URL(location.href);
+            newUrl.searchParams.delete("ticker");
+            newUrl.searchParams.set("event", value);
+            history.replaceState({}, "", newUrl);
+            await loadEvent(value);
+            return;
+          }
+        } catch (_) {}
+
         const newUrl = new URL(location.href);
-        if (isProbablyEventTicker(value)) {
-          newUrl.searchParams.delete("ticker");
-          newUrl.searchParams.set("event", value);
-          history.replaceState({}, "", newUrl);
-          await loadEvent(value);
-        } else {
-          newUrl.searchParams.delete("event");
-          newUrl.searchParams.set("ticker", value);
-          history.replaceState({}, "", newUrl);
-          await loadMarket(value);
-        }
+        newUrl.searchParams.delete("event");
+        newUrl.searchParams.set("ticker", value);
+        history.replaceState({}, "", newUrl);
+        await loadMarket(value);
       }
 
       inputBox.addEventListener("input", () => {
@@ -2654,9 +2727,9 @@ body.lightTheme #widgetCard select.smallSelect option:checked{
   const BRAND_PRESETS = {
     vegasinsider: {
       name: "VegasInsider",
-      accent:"#F2C23A",
-      accent2:"#D9A72A",
-      rgb:"242,194,58",
+      accent:"#2F7DF3",
+      accent2:"#0159D1",
+      rgb:"47,125,243",
       logo:"https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png"
     },
     actionnetwork: {
@@ -2743,23 +2816,23 @@ function applyBrandToDownloadedHtml(doc, brandKey){
     // 1) Swap the logo used in the header pill (src + alt)
     doc = doc.replace(
       /<img class="viLogo"([^>]*?)src="[^"]*"([^>]*?)alt="[^"]*"([^>]*?)\/>/i,
-      `<img class="viLogo"$1src="${p.logo}"$2alt="${p.name}"$3/>`
+      `<img class="viLogo"$1src="https://i.postimg.cc/PrcJnQtK/RG-logo-Fn.png"$2alt="RotoGrinders"$3/>`
     );
 
     // 2) Update the core VI variables used throughout styling
     // Replace hexes (covers most uses)
-    doc = doc.replaceAll("#F2C23A", p.accent);
-    doc = doc.replaceAll("#D9A72A", p.accent2);
+    doc = doc.replaceAll("#2F7DF3", p.accent);
+    doc = doc.replaceAll("#0159D1", p.accent2);
 
     // Replace rgba triples (covers gradients/soft fills/borders)
-    doc = doc.replaceAll("242, 194, 58", p.rgb.split(",").join(", "));
-    doc = doc.replaceAll("242,194,58", p.rgb);
+    doc = doc.replaceAll("47, 125, 243", p.rgb.split(",").join(", "));
+    doc = doc.replaceAll("47,125,243", p.rgb);
 
     // Replace the var block values explicitly as a safety net
     doc = doc.replace(/--vi-yellow\s*:\s*#[0-9A-Fa-f]{6}\s*;/g, `--vi-yellow:${p.accent};`);
     doc = doc.replace(/--vi-yellow-2\s*:\s*#[0-9A-Fa-f]{6}\s*;/g, `--vi-yellow-2:${p.accent2};`);
-    doc = doc.replace(/--vi-yellow-soft\s*:\s*rgba\([^)]+\)\s*;/g, `--vi-yellow-soft: rgba(${p.rgb}, .18);`);
-    doc = doc.replace(/--vi-yellow-soft-2\s*:\s*rgba\([^)]+\)\s*;/g, `--vi-yellow-soft-2: rgba(${p.rgb}, .10);`);
+    doc = doc.replace(/--vi-yellow-soft\s*:\s*rgba\([^)]+\)\s*;/g, `--vi-yellow-soft: rgba(47,125,243, .18);`);
+    doc = doc.replace(/--vi-yellow-soft-2\s*:\s*rgba\([^)]+\)\s*;/g, `--vi-yellow-soft-2: rgba(47,125,243, .10);`);
 
     return doc;
   }
@@ -2790,18 +2863,15 @@ function buildLockedHtmlString(){
   const brandKey = getCurrentBrandKey();
   const theme = (window.__LOCKED_THEME__ || getCurrentTheme());
 
-  const base = b64ToUtf8(ATTACHED_B64);
+  let out = "<!doctype html>\n" + document.documentElement.outerHTML;
 
-  // Replace hardcoded event ticker in the attached template
-  const needle = /const\s+HARDCODED_EVENT_TICKER\s*=\s*"[^"]*"\s*;/;
-  let out = base;
-  const repl = 'const HARDCODED_EVENT_TICKER = ' + JSON.stringify(tkr) + ';';
-  out = out.replace(needle, repl);
+  // Preserve the current locked ticker in the exported file when possible
+  out = out.replace(
+    /const\s+HARDCODED_EVENT_TICKER\s*=\s*"[^"]*"\s*;/,
+    'const HARDCODED_EVENT_TICKER = ' + JSON.stringify(tkr) + ';'
+  );
 
-  // Stamp brand theme + logo into the downloaded HTML
   out = applyBrandToDownloadedHtml(out, brandKey);
-
-  // Stamp the currently selected theme into the downloaded HTML
   out = applyThemeToDownloadedHtml(out, theme);
 
   return { out, tkr, brandKey };
@@ -2889,7 +2959,7 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeHtmlMe
   const BRAND_PRESETS = {
     vegasinsider: {
       name: "VegasInsider",
-      accent:"#F2C23A", accent2:"#D9A72A", rgb:"242,194,58",
+      accent:"#2F7DF3", accent2:"#0159D1", rgb:"47,125,243",
       logo: "https://i.postimg.cc/VkynWsGQ/VI-logo-Dark.png"
     },
     actionnetwork: {
@@ -2995,5 +3065,6 @@ document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeHtmlMe
 })();
 </script>
 
-</body>
-</html>
+
+
+</body></html>
